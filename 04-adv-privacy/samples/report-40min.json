@@ -1,0 +1,793 @@
+{
+  "capture": {
+    "packets": 96513,
+    "hci_events": 60333,
+    "adv_reports": 59437,
+    "malformed_events": 0,
+    "duration_s": 2401.1,
+    "truncated": false,
+    "subevents": {
+      "0x0D": 59437
+    },
+    "extended_reports_with_legacy_bit": 56115
+  },
+  "addresses": {
+    "nrpa": 18,
+    "public": 2,
+    "rpa": 12,
+    "static": 3
+  },
+  "rotation_lifetimes_min": {
+    "nrpa": [
+      1.4,
+      1.5,
+      3.9,
+      4.2,
+      4.3,
+      7.5,
+      7.6,
+      8.6,
+      8.6,
+      8.7,
+      8.8,
+      8.8
+    ],
+    "rpa": [
+      2.3,
+      3.0,
+      17.4,
+      18.3,
+      27.4
+    ],
+    "static": [
+      12.4,
+      14.9
+    ]
+  },
+  "chains": [
+    {
+      "addresses": [
+        "nrpa#07a412",
+        "nrpa#3b253b",
+        "nrpa#7150ee",
+        "nrpa#d6f528",
+        "nrpa#08844e",
+        "nrpa#e674b6",
+        "nrpa#8f144c"
+      ],
+      "span_min": 40.0,
+      "links": [
+        "identical",
+        "identical",
+        "identical",
+        "probable",
+        "identical",
+        "probable"
+      ]
+    },
+    {
+      "addresses": [
+        "nrpa#4772a1",
+        "nrpa#414f3d",
+        "nrpa#6d65c7",
+        "nrpa#95adbc"
+      ],
+      "span_min": 20.2,
+      "links": [
+        "identical",
+        "probable",
+        "identical"
+      ]
+    },
+    {
+      "addresses": [
+        "nrpa#ef31cf",
+        "nrpa#605271",
+        "nrpa#41e804"
+      ],
+      "span_min": 19.8,
+      "links": [
+        "identical",
+        "identical"
+      ]
+    },
+    {
+      "addresses": [
+        "rpa#3c5203",
+        "rpa#a047e8",
+        "rpa#7fa9fb"
+      ],
+      "span_min": 39.8,
+      "links": [
+        "probable",
+        "probable"
+      ]
+    },
+    {
+      "addresses": [
+        "nrpa#a2bad3",
+        "nrpa#56b58e",
+        "nrpa#92a4b0"
+      ],
+      "span_min": 19.9,
+      "links": [
+        "identical",
+        "probable"
+      ]
+    }
+  ],
+  "findings": [
+    {
+      "rule": "P004",
+      "severity": "error",
+      "subject": "nrpa#4772a1",
+      "message": "rotation defeated: new address appeared 0.2 s later carrying identical service_data bytes"
+    },
+    {
+      "rule": "P004",
+      "severity": "error",
+      "subject": "nrpa#3b253b",
+      "message": "rotation defeated: new address appeared 3.1 s later carrying identical service_data bytes"
+    },
+    {
+      "rule": "P004",
+      "severity": "error",
+      "subject": "nrpa#a2bad3",
+      "message": "rotation defeated: new address appeared 0.6 s later carrying identical service_data bytes"
+    },
+    {
+      "rule": "P004",
+      "severity": "error",
+      "subject": "nrpa#07a412",
+      "message": "rotation defeated: new address appeared 1.0 s later carrying identical service_data bytes"
+    },
+    {
+      "rule": "P004",
+      "severity": "error",
+      "subject": "nrpa#605271",
+      "message": "rotation defeated: new address appeared 0.1 s later carrying identical service_data bytes"
+    },
+    {
+      "rule": "P004",
+      "severity": "error",
+      "subject": "nrpa#08844e",
+      "message": "rotation defeated: new address appeared 0.3 s later carrying identical service_data bytes"
+    },
+    {
+      "rule": "P004",
+      "severity": "error",
+      "subject": "nrpa#ef31cf",
+      "message": "rotation defeated: new address appeared 0.5 s later carrying identical service_data bytes"
+    },
+    {
+      "rule": "P004",
+      "severity": "error",
+      "subject": "nrpa#7150ee",
+      "message": "rotation defeated: new address appeared 1.0 s later carrying identical service_data bytes"
+    },
+    {
+      "rule": "P004",
+      "severity": "error",
+      "subject": "nrpa#6d65c7",
+      "message": "rotation defeated: new address appeared 0.2 s later carrying identical service_data bytes"
+    },
+    {
+      "rule": "P001",
+      "severity": "warning",
+      "subject": "public#688e3e",
+      "message": "public address, heard for 40.0 of 40.0 min: trackable wherever it goes, it never changes"
+    },
+    {
+      "rule": "P001",
+      "severity": "warning",
+      "subject": "public#3098e9",
+      "message": "public address, heard for 40.0 of 40.0 min: trackable wherever it goes, it never changes"
+    },
+    {
+      "rule": "P003",
+      "severity": "warning",
+      "subject": "public#688e3e",
+      "message": "advertised name (18 chars) contains the last two bytes of the device's own address"
+    },
+    {
+      "rule": "P003",
+      "severity": "warning",
+      "subject": "public#3098e9",
+      "message": "advertised name (18 chars) contains the last two bytes of the device's own address"
+    },
+    {
+      "rule": "P005",
+      "severity": "warning",
+      "subject": "nrpa#d6f528",
+      "message": "probable handoff: same device shape reappeared 0.7 s later at RSSI within 8 dB"
+    },
+    {
+      "rule": "P005",
+      "severity": "warning",
+      "subject": "nrpa#e674b6",
+      "message": "probable handoff: same device shape reappeared 0.4 s later at RSSI within 2 dB"
+    },
+    {
+      "rule": "P005",
+      "severity": "warning",
+      "subject": "nrpa#56b58e",
+      "message": "probable handoff: same device shape reappeared 0.4 s later at RSSI within 2 dB"
+    },
+    {
+      "rule": "P005",
+      "severity": "warning",
+      "subject": "nrpa#414f3d",
+      "message": "probable handoff: same device shape reappeared 0.3 s later at RSSI within 1 dB"
+    },
+    {
+      "rule": "P005",
+      "severity": "warning",
+      "subject": "rpa#a047e8",
+      "message": "probable handoff: same device shape reappeared 7.9 s later at RSSI within 0 dB"
+    },
+    {
+      "rule": "P005",
+      "severity": "warning",
+      "subject": "rpa#3c5203",
+      "message": "probable handoff: same device shape reappeared 2.1 s later at RSSI within 0 dB"
+    },
+    {
+      "rule": "P007",
+      "severity": "warning",
+      "subject": "nrpa#8f144c",
+      "message": "on air at the same time as nrpa#f472be, carrying the same service_data bytes: two advertising sets, one device"
+    },
+    {
+      "rule": "P007",
+      "severity": "warning",
+      "subject": "nrpa#92a4b0",
+      "message": "on air at the same time as nrpa#8f144c, carrying the same service_data bytes: two advertising sets, one device"
+    },
+    {
+      "rule": "P007",
+      "severity": "warning",
+      "subject": "nrpa#a2bad3",
+      "message": "on air at the same time as nrpa#08844e, carrying the same service_data bytes: two advertising sets, one device"
+    },
+    {
+      "rule": "P007",
+      "severity": "warning",
+      "subject": "nrpa#a2bad3",
+      "message": "on air at the same time as nrpa#e674b6, carrying the same service_data bytes: two advertising sets, one device"
+    },
+    {
+      "rule": "P007",
+      "severity": "warning",
+      "subject": "nrpa#e674b6",
+      "message": "on air at the same time as nrpa#56b58e, carrying the same service_data bytes: two advertising sets, one device"
+    },
+    {
+      "rule": "S001",
+      "severity": "warning",
+      "subject": "public#688e3e",
+      "message": "advertised LE Limited Discoverable for 40.0 min; the spec caps it at 180 s (TGAP(lim_adv_timeout))"
+    },
+    {
+      "rule": "S001",
+      "severity": "warning",
+      "subject": "public#3098e9",
+      "message": "advertised LE Limited Discoverable for 40.0 min; the spec caps it at 180 s (TGAP(lim_adv_timeout))"
+    },
+    {
+      "rule": "P002",
+      "severity": "info",
+      "subject": "static#69db53",
+      "message": "random static address unchanged for 11.1 min"
+    },
+    {
+      "rule": "P002",
+      "severity": "info",
+      "subject": "static#a6a6ba",
+      "message": "random static address unchanged for 14.9 min"
+    },
+    {
+      "rule": "P002",
+      "severity": "info",
+      "subject": "static#82eeef",
+      "message": "random static address unchanged for 12.4 min"
+    },
+    {
+      "rule": "P006",
+      "severity": "info",
+      "subject": "rpa#842937",
+      "message": "RPA did not rotate for 27.4 min (Lecture 10 measured 7-20 min on phones)"
+    }
+  ],
+  "devices": [
+    {
+      "address": "public#688e3e",
+      "kind": "public",
+      "first_s": 1.3,
+      "last_s": 2401.0,
+      "reports": 18727,
+      "rssi_median": -60,
+      "adv_interval_ms": 206,
+      "name": "<18 chars>",
+      "company_ids": [
+        "0x8802"
+      ],
+      "service_uuids": []
+    },
+    {
+      "address": "nrpa#07a412",
+      "kind": "nrpa",
+      "first_s": 1.4,
+      "last_s": 195.2,
+      "reports": 150,
+      "rssi_median": -57,
+      "adv_interval_ms": 1038,
+      "name": "",
+      "company_ids": [],
+      "service_uuids": [
+        "0xFEF3"
+      ]
+    },
+    {
+      "address": "public#3098e9",
+      "kind": "public",
+      "first_s": 1.7,
+      "last_s": 2400.9,
+      "reports": 9250,
+      "rssi_median": -81,
+      "adv_interval_ms": 398,
+      "name": "<18 chars>",
+      "company_ids": [
+        "0x8802"
+      ],
+      "service_uuids": []
+    },
+    {
+      "address": "nrpa#ef31cf",
+      "kind": "nrpa",
+      "first_s": 1.8,
+      "last_s": 402.3,
+      "reports": 2180,
+      "rssi_median": -40,
+      "adv_interval_ms": 288,
+      "name": "",
+      "company_ids": [],
+      "service_uuids": [
+        "0xFCF1"
+      ]
+    },
+    {
+      "address": "rpa#3c5203",
+      "kind": "rpa",
+      "first_s": 10.3,
+      "last_s": 636.0,
+      "reports": 239,
+      "rssi_median": -84,
+      "adv_interval_ms": 1942,
+      "name": "",
+      "company_ids": [
+        "0x004C"
+      ],
+      "service_uuids": []
+    },
+    {
+      "address": "rpa#f39335",
+      "kind": "rpa",
+      "first_s": 20.9,
+      "last_s": 634.4,
+      "reports": 23,
+      "rssi_median": -84,
+      "adv_interval_ms": 8021,
+      "name": "",
+      "company_ids": [
+        "0x004C"
+      ],
+      "service_uuids": []
+    },
+    {
+      "address": "rpa#842937",
+      "kind": "rpa",
+      "first_s": 66.7,
+      "last_s": 1710.5,
+      "reports": 79,
+      "rssi_median": -83,
+      "adv_interval_ms": 9018,
+      "name": "",
+      "company_ids": [
+        "0x004C"
+      ],
+      "service_uuids": []
+    },
+    {
+      "address": "static#82eeef",
+      "kind": "static",
+      "first_s": 71.1,
+      "last_s": 817.2,
+      "reports": 50,
+      "rssi_median": -84,
+      "adv_interval_ms": 6022,
+      "name": "",
+      "company_ids": [
+        "0x004C"
+      ],
+      "service_uuids": []
+    },
+    {
+      "address": "nrpa#3b253b",
+      "kind": "nrpa",
+      "first_s": 196.2,
+      "last_s": 650.0,
+      "reports": 345,
+      "rssi_median": -56,
+      "adv_interval_ms": 1038,
+      "name": "",
+      "company_ids": [],
+      "service_uuids": [
+        "0xFEF3"
+      ]
+    },
+    {
+      "address": "nrpa#605271",
+      "kind": "nrpa",
+      "first_s": 402.8,
+      "last_s": 930.9,
+      "reports": 2821,
+      "rssi_median": -40,
+      "adv_interval_ms": 288,
+      "name": "",
+      "company_ids": [],
+      "service_uuids": [
+        "0xFCF1"
+      ]
+    },
+    {
+      "address": "rpa#a047e8",
+      "kind": "rpa",
+      "first_s": 638.1,
+      "last_s": 1735.3,
+      "reports": 686,
+      "rssi_median": -84,
+      "adv_interval_ms": 1106,
+      "name": "",
+      "company_ids": [
+        "0x004C"
+      ],
+      "service_uuids": []
+    },
+    {
+      "address": "nrpa#7150ee",
+      "kind": "nrpa",
+      "first_s": 653.1,
+      "last_s": 1105.7,
+      "reports": 340,
+      "rssi_median": -56,
+      "adv_interval_ms": 1038,
+      "name": "",
+      "company_ids": [],
+      "service_uuids": [
+        "0xFEF3"
+      ]
+    },
+    {
+      "address": "rpa#349659",
+      "kind": "rpa",
+      "first_s": 666.8,
+      "last_s": 1711.9,
+      "reports": 49,
+      "rssi_median": -84,
+      "adv_interval_ms": 6019,
+      "name": "",
+      "company_ids": [
+        "0x004C"
+      ],
+      "service_uuids": []
+    },
+    {
+      "address": "static#a6a6ba",
+      "kind": "static",
+      "first_s": 829.7,
+      "last_s": 1726.0,
+      "reports": 57,
+      "rssi_median": -84,
+      "adv_interval_ms": 8016,
+      "name": "",
+      "company_ids": [
+        "0x004C"
+      ],
+      "service_uuids": []
+    },
+    {
+      "address": "nrpa#41e804",
+      "kind": "nrpa",
+      "first_s": 931.0,
+      "last_s": 1190.8,
+      "reports": 1464,
+      "rssi_median": -39,
+      "adv_interval_ms": 288,
+      "name": "",
+      "company_ids": [],
+      "service_uuids": [
+        "0xFCF1"
+      ]
+    },
+    {
+      "address": "nrpa#d6f528",
+      "kind": "nrpa",
+      "first_s": 1106.8,
+      "last_s": 1192.8,
+      "reports": 75,
+      "rssi_median": -56,
+      "adv_interval_ms": 1036,
+      "name": "",
+      "company_ids": [],
+      "service_uuids": [
+        "0xFEF3"
+      ]
+    },
+    {
+      "address": "nrpa#4772a1",
+      "kind": "nrpa",
+      "first_s": 1191.3,
+      "last_s": 1707.1,
+      "reports": 6211,
+      "rssi_median": -64,
+      "adv_interval_ms": 137,
+      "name": "",
+      "company_ids": [],
+      "service_uuids": [
+        "0xFCF1"
+      ]
+    },
+    {
+      "address": "rpa#6cb17f",
+      "kind": "rpa",
+      "first_s": 1193.1,
+      "last_s": 1195.2,
+      "reports": 13,
+      "rssi_median": -63,
+      "adv_interval_ms": 137,
+      "name": "",
+      "company_ids": [],
+      "service_uuids": [
+        "0xFEF3"
+      ]
+    },
+    {
+      "address": "nrpa#a2bad3",
+      "kind": "nrpa",
+      "first_s": 1193.4,
+      "last_s": 1720.2,
+      "reports": 1394,
+      "rssi_median": -64,
+      "adv_interval_ms": 288,
+      "name": "",
+      "company_ids": [],
+      "service_uuids": [
+        "0xFEF3"
+      ]
+    },
+    {
+      "address": "nrpa#08844e",
+      "kind": "nrpa",
+      "first_s": 1193.4,
+      "last_s": 1707.3,
+      "reports": 1437,
+      "rssi_median": -64,
+      "adv_interval_ms": 288,
+      "name": "",
+      "company_ids": [],
+      "service_uuids": [
+        "0xFEF3"
+      ]
+    },
+    {
+      "address": "rpa#789b69",
+      "kind": "rpa",
+      "first_s": 1216.1,
+      "last_s": 1351.9,
+      "reports": 2,
+      "rssi_median": -96,
+      "adv_interval_ms": 135818,
+      "name": "",
+      "company_ids": [
+        "0x004C"
+      ],
+      "service_uuids": []
+    },
+    {
+      "address": "nrpa#414f3d",
+      "kind": "nrpa",
+      "first_s": 1707.4,
+      "last_s": 1797.4,
+      "reports": 1103,
+      "rssi_median": -61,
+      "adv_interval_ms": 137,
+      "name": "",
+      "company_ids": [],
+      "service_uuids": [
+        "0xFCF1"
+      ]
+    },
+    {
+      "address": "nrpa#e674b6",
+      "kind": "nrpa",
+      "first_s": 1707.6,
+      "last_s": 1957.2,
+      "reports": 714,
+      "rssi_median": -61,
+      "adv_interval_ms": 288,
+      "name": "",
+      "company_ids": [],
+      "service_uuids": [
+        "0xFEF3"
+      ]
+    },
+    {
+      "address": "nrpa#56b58e",
+      "kind": "nrpa",
+      "first_s": 1720.7,
+      "last_s": 1957.2,
+      "reports": 656,
+      "rssi_median": -61,
+      "adv_interval_ms": 288,
+      "name": "",
+      "company_ids": [],
+      "service_uuids": [
+        "0xFEF3"
+      ]
+    },
+    {
+      "address": "static#69db53",
+      "kind": "static",
+      "first_s": 1733.9,
+      "last_s": 2400.0,
+      "reports": 115,
+      "rssi_median": -84,
+      "adv_interval_ms": 4007,
+      "name": "",
+      "company_ids": [
+        "0x004C"
+      ],
+      "service_uuids": []
+    },
+    {
+      "address": "rpa#a80039",
+      "kind": "rpa",
+      "first_s": 1736.3,
+      "last_s": 2396.0,
+      "reports": 85,
+      "rssi_median": -84,
+      "adv_interval_ms": 6006,
+      "name": "",
+      "company_ids": [
+        "0x004C"
+      ],
+      "service_uuids": []
+    },
+    {
+      "address": "rpa#7fa9fb",
+      "kind": "rpa",
+      "first_s": 1743.2,
+      "last_s": 2401.1,
+      "reports": 905,
+      "rssi_median": -84,
+      "adv_interval_ms": 821,
+      "name": "",
+      "company_ids": [
+        "0x004C"
+      ],
+      "service_uuids": []
+    },
+    {
+      "address": "rpa#1b9b8c",
+      "kind": "rpa",
+      "first_s": 1780.3,
+      "last_s": 2381.7,
+      "reports": 32,
+      "rssi_median": -84,
+      "adv_interval_ms": 8004,
+      "name": "",
+      "company_ids": [
+        "0x004C"
+      ],
+      "service_uuids": []
+    },
+    {
+      "address": "nrpa#6d65c7",
+      "kind": "nrpa",
+      "first_s": 1797.7,
+      "last_s": 2321.5,
+      "reports": 6572,
+      "rssi_median": -60,
+      "adv_interval_ms": 137,
+      "name": "",
+      "company_ids": [],
+      "service_uuids": [
+        "0xFCF1"
+      ]
+    },
+    {
+      "address": "rpa#7ed223",
+      "kind": "rpa",
+      "first_s": 1957.4,
+      "last_s": 1959.3,
+      "reports": 13,
+      "rssi_median": -69,
+      "adv_interval_ms": 137,
+      "name": "",
+      "company_ids": [],
+      "service_uuids": [
+        "0xFEF3"
+      ]
+    },
+    {
+      "address": "nrpa#92a4b0",
+      "kind": "nrpa",
+      "first_s": 1957.6,
+      "last_s": 2389.8,
+      "reports": 1240,
+      "rssi_median": -59,
+      "adv_interval_ms": 287,
+      "name": "",
+      "company_ids": [],
+      "service_uuids": [
+        "0xFEF3"
+      ]
+    },
+    {
+      "address": "nrpa#8f144c",
+      "kind": "nrpa",
+      "first_s": 1957.6,
+      "last_s": 2400.9,
+      "reports": 1358,
+      "rssi_median": -59,
+      "adv_interval_ms": 287,
+      "name": "",
+      "company_ids": [],
+      "service_uuids": [
+        "0xFEF3"
+      ]
+    },
+    {
+      "address": "rpa#e6422e",
+      "kind": "rpa",
+      "first_s": 1969.2,
+      "last_s": 2149.5,
+      "reports": 2,
+      "rssi_median": -94,
+      "adv_interval_ms": 180286,
+      "name": "",
+      "company_ids": [
+        "0x004C"
+      ],
+      "service_uuids": []
+    },
+    {
+      "address": "nrpa#95adbc",
+      "kind": "nrpa",
+      "first_s": 2321.8,
+      "last_s": 2401.0,
+      "reports": 1018,
+      "rssi_median": -52,
+      "adv_interval_ms": 137,
+      "name": "",
+      "company_ids": [],
+      "service_uuids": [
+        "0xFCF1"
+      ]
+    },
+    {
+      "address": "nrpa#f472be",
+      "kind": "nrpa",
+      "first_s": 2390.1,
+      "last_s": 2401.0,
+      "reports": 32,
+      "rssi_median": -51,
+      "adv_interval_ms": 288,
+      "name": "",
+      "company_ids": [],
+      "service_uuids": [
+        "0xFEF3"
+      ]
+    }
+  ]
+}
