@@ -1,0 +1,18 @@
+# Captures of the air are lists of your neighbours' devices.
+# Commit only what you have scrubbed on purpose.
+captures/
+*.pcap
+*.pcapng
+*.btsnoop
+
+# C builds
+build/
+build-*/
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+
+# Editor settings hold local paths
+.vscode/

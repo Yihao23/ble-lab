@@ -1,0 +1,26 @@
+# Doxygen configuration for the BLE core library.   doxygen Doxyfile
+# Output goes to build/docs (git-ignored). Any warning fails the run.
+PROJECT_NAME           = "BLE core"
+PROJECT_BRIEF          = "Freestanding C99: AES-128, RPA, AD and HCI advertising report parsing"
+OUTPUT_DIRECTORY       = build/docs
+INPUT                  = include/ble src tools/bleparse.c tests README.md
+EXCLUDE                = tests/fixtures.h
+FILE_PATTERNS          = *.h *.c *.md
+USE_MDFILE_AS_MAINPAGE = README.md
+OPTIMIZE_OUTPUT_FOR_C  = YES
+EXTRACT_STATIC         = YES
+EXTRACT_ALL            = NO
+INTERNAL_DOCS          = YES
+TYPEDEF_HIDES_STRUCT   = YES
+JAVADOC_AUTOBRIEF      = NO
+SOURCE_BROWSER         = YES
+GENERATE_HTML          = YES
+GENERATE_LATEX         = NO
+USE_MATHJAX            = YES
+HAVE_DOT               = NO
+QUIET                  = YES
+WARNINGS               = YES
+WARN_IF_UNDOCUMENTED   = YES
+WARN_IF_DOC_ERROR      = YES
+WARN_NO_PARAMDOC       = YES
+WARN_AS_ERROR          = FAIL_ON_WARNINGS
