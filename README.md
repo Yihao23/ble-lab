@@ -70,7 +70,7 @@ Project **04** found exactly this, on air, in devices around a laptop.
 
 | # | Project | What it proves | Status |
 |---|---|---|---|
-| **01** | [BLE core in C](01-ble-core-c/) | You can write the parser that runs on the microcontroller: no heap, no libc, every length checked | ✅ 274 checks, ASan+UBSan fuzz, 0 mismatches vs Wireshark on 59 437 reports, 1.9 KB on Cortex-M0+ |
+| **01** | [BLE core in C](01-ble-core-c/) | You can write the parser that runs on the microcontroller: no heap, no libc, every length checked | ✅ 274 checks, ASan+UBSan fuzz, 0 mismatches vs Wireshark on 59 437 reports, 1.9 KB flash and 352 B worst-case stack on Cortex-M0+ |
 | **02** | [GATT peripheral on BlueZ](02-gatt-peripheral/) | You can design a GATT server: formats, error codes, notification policy, security levels | ✅ 24 tests, registered and advertising; HCI-verified |
 | **03** | [Reading HCI](03-hci-capture/) | You can read the host–controller boundary, where field bugs are decided | ✅ 40-min capture, 6-section report |
 | **04** | [Advertising privacy audit](04-adv-privacy/) | You can turn a capture into findings someone can act on | ✅ 41 tests, 10 rules, pseudonymised reports |

@@ -55,11 +55,17 @@ const char *ble_addr_kind_str(ble_addr_kind_t kind)
  * Builds r' by placing r in the last three octets of a zeroed block (MSB-first,
  * so these are the least significant), encrypts, and keeps the last three
  * octets of the result, which is the "mod 2^24". The full ciphertext is wiped.
+ *
+ * The block is zeroed with ble_wipe(), not `= {0}`: for that initialiser GCC
+ * emitted a call to memset on Cortex-M0+, which a build without libc cannot
+ * link. Stores through a volatile pointer cannot be turned into a call.
  */
 void ble_ah(const uint8_t irk[16], const uint8_t r[3], uint8_t hash[3])
 {
-    uint8_t block[16] = {0};
+    uint8_t block[16];
     uint8_t enc[16];
+
+    ble_wipe(block, sizeof block);
 
     /* r' = 104 zero bits || r: r sits in the three least significant octets. */
     block[13] = r[0];

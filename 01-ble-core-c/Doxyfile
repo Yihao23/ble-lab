@@ -3,7 +3,7 @@
 PROJECT_NAME           = "BLE core"
 PROJECT_BRIEF          = "Freestanding C99: AES-128, RPA, AD and HCI advertising report parsing"
 OUTPUT_DIRECTORY       = build/docs
-INPUT                  = include/ble src tools/bleparse.c tests README.md
+INPUT                  = include/ble src tools/bleparse.c tests docs README.md
 EXCLUDE                = tests/fixtures.h
 FILE_PATTERNS          = *.h *.c *.md
 USE_MDFILE_AS_MAINPAGE = README.md

@@ -29,8 +29,12 @@ cmake -S . -B build-asan -G Ninja -DBLE_SANITIZE=ON && cmake --build build-asan
 # differential test: this library vs Wireshark, every report in a capture
 python3 tools/diff_vs_tshark.py ../03-hci-capture/captures/scan-*.pcapng
 
-# what it costs on a microcontroller (needs Docker; no newlib is installed)
+# what it costs on a microcontroller (needs Docker; no newlib is installed),
+# and fail if the objects need any symbol from outside the library
 ./tools/size-cortex-m.sh
+
+# worst-case stack along the deepest call chain, from GCC's own call graph
+./tools/stack-depth.py
 
 # API documentation (Doxygen; any warning fails the run)
 doxygen Doxyfile && xdg-open build/docs/html/index.html
@@ -51,17 +55,25 @@ reports whose AD payload is malformed: 0
 ```
 == cortex-m0plus (-Os, thumb) ==
    text    data     bss     dec     hex filename
-   1973       0       0    1973     7b5 (TOTALS)
--- worst-case stack per function (bytes) --
-240     ble_aes.c:95:6:ble_aes128_encrypt
-56      ble_rpa.c:30:6:ble_ah
+   1971       0       0    1971     7b3 (TOTALS)
+-- symbols needed from outside the library (must be none) --
+  none
+```
+```
+== cortex-m0plus: worst-case stack of each public function ==
+      352  ble_rpa_resolve_any (32) -> ble_rpa_resolve (24) -> ble_ah (48) -> ble_aes128_encrypt (240) -> add_round_key (8)
+      336  ble_rpa_make (40) -> ble_ah (48) -> ble_aes128_encrypt (240) -> add_round_key (8)
+       72  ble_ad_name (56) -> ble_ad_next (16)
 ```
 
-**1.9 KB of flash, zero RAM, no libc.** The largest stack frame is the AES key
-schedule (176 of those 240 bytes) — expanded on the stack and wiped before
-return, never kept in a static.
-**1.9 KB flash、0 字节 RAM、不依赖 libc。** 最大的栈帧是 AES 密钥扩展
-（240 字节里占 176），放在栈上、返回前擦除，从不存进 static。
+**1.9 KB of flash, zero RAM, no libc — checked at the symbol level. 352 bytes
+of stack in the worst case**, resolving an address against a list of IRKs.
+Most of it is the AES frame, and most of that is the key schedule (176 of
+240 bytes): expanded on the stack and wiped before return, never kept in a
+static. The AD and HCI parsers need 72 bytes at most.
+**1.9 KB flash、0 字节 RAM、不依赖 libc（在符号层面检查过）。最坏情况 352 字节栈**，
+发生在用一组 IRK 解析地址时。大部分是 AES 的栈帧，其中又以密钥扩展为主
+（240 字节里占 176），放在栈上、返回前擦除，从不存进 static。AD 和 HCI 解析最多只要 72 字节。
 
 ---
 
@@ -76,7 +88,8 @@ return, never kept in a static.
 | `tests/test_fuzz.c` | 200 000 random and mutated inputs, each in an exactly-sized `malloc` so ASan catches a one-byte over-read. |
 | `docs/multi-report.md` | How several reports share one legacy event: the spec, Linux and this parser compared, and why a `Data_Length` above 31 is accepted |
 | `tools/bleparse.c` | Hex HCI events on stdin, one TSV line per report on stdout. What `diff_vs_tshark.py` drives. |
-| `tools/size-cortex-m.sh` | Cross-compiles with `arm-none-eabi-gcc -Os -ffreestanding` in a throwaway container, prints size and `-fstack-usage`. |
+| `tools/size-cortex-m.sh` | Cross-compiles with `arm-none-eabi-gcc -Os -ffreestanding` in a throwaway container, prints size, fails if any object needs a symbol the library does not define, and keeps the `.su` and `.ci` files in `build/cortex-m/` |
+| `tools/stack-depth.py` | Adds stack frames along GCC's call graph (after inlining) and prints each public function's worst case and the chain behind it |
 
 ---
 
@@ -123,7 +136,8 @@ fixture 测试，fixture 由 Wireshark 解码——三个独立解析器互相�
 | Every report has the legacy bit set | BlueZ scans with extended commands, but nearly everything around still advertises with legacy PDUs; the controller reports them as `0x0D` with bit 4 set | Map legacy `0x02` events onto the extended bit layout, one format downstream |
 | `tx_power` always 127 | 127 means "not available"; legacy PDUs never carry it | Treat 127 as absent, not as +127 dBm |
 | `-Wconversion` errors on `uint8_t` arithmetic | Integer promotion: `a + b` is `int` | Explicit casts at every narrowing, compiled with `-Werror` |
-| Cross build fails on `memcpy` | `-ffreestanding` + no newlib — which is the point | `ble_util.h` |
+| `uint8_t block[16] = {0}` needed libc on Cortex-M0+ | GCC emitted a call to `memset` for the initialiser on M0+ (not on M4), which `-ffreestanding -fno-builtin` does not prevent. The build only compiled, never linked, so nothing noticed | Zero it with `ble_wipe()`, whose volatile stores cannot become a call; `size-cortex-m.sh` now fails on any symbol the library does not define itself |
+| Per-function stack looked like the answer | `.su` gives each function's own frame; callers stack them. Inlining also hides functions the source calls | `stack-depth.py` adds frames along the call graph GCC emitted |
 
 **Not claimed:** the AES here uses a lookup-table S-box, so it is not
 constant-time against a cache-timing attacker on the same core. On a
@@ -146,9 +160,14 @@ controller's AES (`HCI_LE_Encrypt`) or a hardware block.
   changing?"* — The headphones' address is `prand ‖ ah(IRK, prand)`. The phone
   got the IRK at pairing; it recomputes `ah` over the first 3 bytes and
   compares with the last 3. Nobody without the IRK can do that.
-- *"What does 240 bytes of stack mean for you?"* — On an M0+ with 2 KB of RAM
-  it is the budget for one call. It is also why the key schedule is not static:
-  a static would hold the expanded key forever, the stack frame is wiped.
+- *"How much stack does it need?"* — 352 bytes on an M0+, found by adding
+  frames along the call graph GCC emitted, not by reading the source: the
+  compiler inlines half of the AES into one frame. Plus whatever an interrupt
+  stacks on top at the worst moment. It is also why the key schedule is not
+  static: a static would hold the expanded key forever, the stack frame is wiped.
+- *"How do you know it needs no libc?"* — Compiling proves nothing: GCC may
+  call `memset` on its own. It did, on M0+ only. The build now checks every
+  undefined symbol in the objects.
 
 ---
 
@@ -172,9 +191,9 @@ controller's AES (`HCI_LE_Encrypt`) or a hardware block.
 - [x] Fuzz under ASan + UBSan, exactly-sized buffers.
 - [x] Differential test against tshark on the full 40-minute capture.
 - [x] Cross-compile for Cortex-M0+ and M4 with no libc.
-- [ ] TODO(you): the stack numbers are per function. Add up the deepest call
-  chain (`ble_rpa_resolve_any` → `ble_rpa_resolve` → `ble_ah` →
-  `ble_aes128_encrypt`) from the `.su` files and write it here.
+- [x] Worst-case stack along the call chain, not per function:
+  `tools/stack-depth.py` — 352 bytes on M0+, 328 on M4.
+- [x] Prove "no libc" at the symbol level. It was not true: `memset` on M0+.
 
 - **Caught by cross-checking with tshark:** a fixture labelled as an
   advertisement that was really a scan response, and two "different" fixtures
@@ -184,15 +203,16 @@ controller's AES (`HCI_LE_Encrypt`) or a hardware block.
 
 ## What was actually run / 实际跑过的
 
-On 2026-09-27, Ubuntu 24.04, kernel 7.0, gcc 13, Intel AX201, BlueZ 5.72:
+Last run on 2026-09-30 (the capture itself is from 2026-09-27), Ubuntu 24.04, kernel 7.0, gcc 13 on the host, arm-none-eabi-gcc 12.2 for Cortex-M, Intel AX201, BlueZ 5.72:
 
 | Command | Result |
 |---|---|
 | `./build/ble_tests` | 274 checks, 0 failed; 200 000 fuzz inputs, all in bounds |
 | `./build-asan/ble_tests` | same, no ASan/UBSan report |
 | `python3 tools/diff_vs_tshark.py …40min.pcapng` | 59 437 reports × 6 fields, 0 mismatches |
-| `doxygen Doxyfile` | 0 warnings with warnings as errors; 45 HTML pages |
-| `./tools/size-cortex-m.sh` | M0+: 1973 B text, 0 data, 0 bss, 240 B worst frame · M4: 2061 B, 232 B |
+| `doxygen Doxyfile` | 0 warnings with warnings as errors; 69 HTML pages |
+| `./tools/size-cortex-m.sh` | M0+: 1971 B text, 0 data, 0 bss · M4: 2067 B; no symbol needed from outside the library on either |
+| `./tools/stack-depth.py` | Worst case 352 B on M0+, 328 B on M4, both through `ble_rpa_resolve_any` |
 
 Not run: on real Cortex-M hardware. The size and stack numbers come from the
 cross-compiler, not from a board.
