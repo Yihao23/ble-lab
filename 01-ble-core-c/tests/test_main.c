@@ -16,6 +16,7 @@ int main(void)
     suite_aes();
     suite_rpa();
     suite_ad();
+    suite_ad_helpers();
     suite_hci();
     suite_fuzz();
 

@@ -143,3 +143,78 @@ uint16_t ble_ad_uuid16_at(const ble_ad_t *ad, uint8_t i)
     }
     return ble_le16(&ad->data[2u * i]);
 }
+
+/**
+ * @par Implementation
+ * Returns the first Flags structure and stops. A payload with two is not
+ * something a conforming device sends; taking the first is the same rule
+ * ble_ad_find() follows, and the caller's single byte is written once.
+ */
+bool ble_ad_flags(const uint8_t *buf, size_t len, uint8_t *flags)
+{
+    ble_ad_iter_t it;
+    ble_ad_t ad;
+    ble_ad_iter_init(&it, buf, len);
+    while (ble_ad_next(&it, &ad) == BLE_AD_OK) {
+        if (ad.type == BLE_AD_FLAGS) {
+            if (ad.len < 1u) {
+                return false;           /* a Flags structure with no value */
+            }
+            *flags = ad.data[0];
+            return true;
+        }
+    }
+    return false;
+}
+
+/**
+ * @par Implementation
+ * One pass. A Complete Local Name ends the search at once; a Shortened one
+ * is remembered in locals and returned only if no complete name follows.
+ * The caller's outputs are written exactly once, and not at all on failure.
+ */
+bool ble_ad_name(const uint8_t *buf, size_t len, const uint8_t **name, uint8_t *name_len)
+{
+    ble_ad_iter_t it;
+    ble_ad_t ad;
+    const uint8_t *short_name = NULL;
+    uint8_t short_len = 0u;
+    bool have_short = false;
+
+    ble_ad_iter_init(&it, buf, len);
+    while (ble_ad_next(&it, &ad) == BLE_AD_OK) {
+        if (ad.type == BLE_AD_NAME_COMPLETE) {
+            *name = ad.data;
+            *name_len = ad.len;
+            return true;
+        }
+        if (ad.type == BLE_AD_NAME_SHORT && !have_short) {
+            short_name = ad.data;
+            short_len = ad.len;
+            have_short = true;
+        }
+    }
+    if (!have_short) {
+        return false;
+    }
+    *name = short_name;
+    *name_len = short_len;
+    return true;
+}
+
+/**
+ * @par Implementation
+ * Same shape as ble_ad_manufacturer(): check type and length before reading,
+ * then a little-endian UUID and a payload pointer into the caller's buffer.
+ */
+bool ble_ad_service_data16(const ble_ad_t *ad, uint16_t *uuid,
+                           const uint8_t **payload, uint8_t *payload_len)
+{
+    if (ad->type != BLE_AD_SERVICE_DATA16 || ad->len < 2u) {
+        return false;
+    }
+    *uuid = ble_le16(ad->data);
+    *payload = ad->data + 2;
+    *payload_len = (uint8_t)(ad->len - 2u);
+    return true;
+}

@@ -171,6 +171,50 @@ uint8_t  ble_ad_uuid16_count(const ble_ad_t *ad);
  */
 uint16_t ble_ad_uuid16_at(const ble_ad_t *ad, uint8_t i);
 
+/**
+ * @brief Read the value of the Flags AD structure.
+ *
+ * @param[in]  buf    Payload.
+ * @param[in]  len    Payload length.
+ * @param[out] flags  Receives the first data byte of the Flags structure.
+ * @retval true   A Flags structure with at least one data byte was found.
+ * @retval false  No Flags structure, an empty one, or the payload became
+ *                malformed before one was reached. @p flags untouched.
+ */
+bool ble_ad_flags(const uint8_t *buf, size_t len, uint8_t *flags);
+
+/**
+ * @brief Find the device name: the Complete Local Name if present,
+ *        otherwise the Shortened Local Name.
+ *
+ * The name is not NUL-terminated; it points into @p buf.
+ *
+ * @param[in]  buf       Payload.
+ * @param[in]  len       Payload length.
+ * @param[out] name      Receives a pointer to the first name byte.
+ * @param[out] name_len  Receives the name length; 0 for an empty name.
+ * @retval true   A name was found (possibly empty).
+ * @retval false  No name structure before the end or before a malformed
+ *                structure. Outputs untouched.
+ */
+bool ble_ad_name(const uint8_t *buf, size_t len, const uint8_t **name, uint8_t *name_len);
+
+/**
+ * @brief Split a Service Data – 16-bit UUID structure (AD type 0x16).
+ *
+ * The first two data bytes are the UUID, little-endian; the rest is the
+ * service's payload.
+ *
+ * @param[in]  ad           AD structure.
+ * @param[out] uuid         Service UUID.
+ * @param[out] payload      Bytes after the UUID; points into the source buffer.
+ * @param[out] payload_len  Number of payload bytes; may be 0.
+ * @retval true   @p ad is 16-bit service data with at least a UUID.
+ * @retval false  Wrong type or shorter than 2 bytes. Outputs untouched.
+ */
+bool ble_ad_service_data16(const ble_ad_t *ad, uint16_t *uuid,
+                           const uint8_t **payload, uint8_t *payload_len);
+
 #ifdef __cplusplus
 }
 #endif
