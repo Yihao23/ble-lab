@@ -12,7 +12,10 @@ after inlining, which is the one that runs, not the one in the source.
 
 Not included: interrupts. An ISR that fires at the deepest point stacks its
 own frame on top, plus what the core pushes on exception entry: 32 bytes,
-more on a Cortex-M4F with floating-point context to save.
+more on a Cortex-M4F with floating-point context to save. Also not
+included: compiler-runtime helpers such as __aeabi_uidivmod, which GCC
+inserts after the call graph is written, so they never appear in it.
+size-cortex-m.sh lists them.
 
 Exits 1 if any chain reaches a function with no known frame (a libc call the
 compiler emitted, say) or recursion, since then there is no bound to report.

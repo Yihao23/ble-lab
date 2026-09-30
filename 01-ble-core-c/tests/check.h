@@ -66,6 +66,8 @@ void suite_hci(void);    /**< HCI report parser, synthetic and real events. See 
 void suite_ad_helpers(void);   /**< Task 1: flags, name, service data. See test_ad_helpers.c. */
 void suite_hci_status(void);   /**< Task 2: extended report data status. See test_hci_status.c. */
 void suite_hci_multi(void);    /**< Task 3: several legacy reports in one event. See test_hci_multi.c. */
+void suite_cmac(void);         /**< Task 5: AES-CMAC, RFC 4493 vectors. See test_cmac.c. */
+void suite_sc(void);           /**< Task 5: g2, Core Appendix D.5. See test_cmac.c. */
 void suite_fuzz(void);   /**< Random input, half shaped like LE Meta events, under the sanitizers. See test_fuzz.c. */
 
 #endif

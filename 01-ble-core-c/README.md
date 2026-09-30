@@ -13,6 +13,17 @@ BLE host 里每一条广播都要经过的那几段代码，按固件的写法�
 | `ble_rpa` | Address kind from the top two bits, `ah()`, make and resolve a Resolvable Private Address | 地址类型判定、`ah()`、生成/解析 RPA |
 | `ble_ad` | Iterate Advertising Data structures without ever reading past the buffer; read Flags, the device name and 16-bit service data | 安全遍历 AD 结构；读取 Flags、设备名、16 位服务数据 |
 | `ble_hci` | Iterate the reports inside an HCI LE Advertising Report event, legacy (0x02) and extended (0x0D); tell complete, fragmented and truncated data apart | 解析 HCI 广播报告事件；区分完整、分段、截断的数据 |
+| `ble_cmac` | AES-CMAC (RFC 4493), the MAC every LE Secure Connections function is built on | AES-CMAC，LE 安全连接所有函数的基础 |
+| `ble_sc` | `g2`: the six digits both screens show during numeric-comparison pairing | `g2`：数字比较配对时两边屏幕显示的 6 位数 |
+
+**The cryptography here is for understanding, not for products.** `ble_aes`,
+`ble_cmac` and `ble_sc` are checked against FIPS-197, RFC 4493 and the Core
+spec's Appendix D, but a product should use the chip's hardware AES and a
+qualified Bluetooth stack (Zephyr, the vendor's SDK), not hand-written crypto.
+Writing them is how the pairing protocol, its byte orders and its test
+vectors became familiar enough to debug a failing pairing.
+**这里的密码学代码用于学习，不用于产品。** 它们通过了 FIPS-197、RFC 4493 和规范附录 D
+的官方向量，但产品应使用芯片的硬件 AES 和经过认证的蓝牙协议栈，而不是手写的加密代码。
 
 ---
 
@@ -21,7 +32,7 @@ BLE host 里每一条广播都要经过的那几段代码，按固件的写法�
 ```bash
 cd 01-ble-core-c
 cmake -S . -B build -G Ninja && cmake --build build
-./build/ble_tests                                   # 274 checks + 200k-input fuzz
+./build/ble_tests                                   # 294 checks + 200k-input fuzz
 
 cmake -S . -B build-asan -G Ninja -DBLE_SANITIZE=ON && cmake --build build-asan
 ./build-asan/ble_tests                              # same, under ASan + UBSan
@@ -45,7 +56,7 @@ doxygen Doxyfile && xdg-open build/docs/html/index.html
 ```
   200000 inputs, 215848 AD structures, 43915 reports parsed, all in bounds
 
-274 checks, 0 failed
+294 checks, 0 failed
 ```
 ```
 59437 reports compared on 6 fields each (356622 values)
@@ -55,25 +66,27 @@ reports whose AD payload is malformed: 0
 ```
 == cortex-m0plus (-Os, thumb) ==
    text    data     bss     dec     hex filename
-   1971       0       0    1971     7b3 (TOTALS)
--- symbols needed from outside the library (must be none) --
-  none
+   2423       0       0    2423     977 (TOTALS)
+-- symbols needed from outside the library --
+  compiler runtime (libgcc): __aeabi_uidivmod  <- ble_sc.o
 ```
 ```
 == cortex-m0plus: worst-case stack of each public function ==
+      496  ble_sc_g2 (112) -> ble_aes_cmac (104) -> ble_cmac_subkeys (32) -> ble_aes128_encrypt (240) -> add_round_key (8)
+      384  ble_aes_cmac (104) -> ble_cmac_subkeys (32) -> ble_aes128_encrypt (240) -> add_round_key (8)
       352  ble_rpa_resolve_any (32) -> ble_rpa_resolve (24) -> ble_ah (48) -> ble_aes128_encrypt (240) -> add_round_key (8)
-      336  ble_rpa_make (40) -> ble_ah (48) -> ble_aes128_encrypt (240) -> add_round_key (8)
        72  ble_ad_name (56) -> ble_ad_next (16)
 ```
 
-**1.9 KB of flash, zero RAM, no libc — checked at the symbol level. 352 bytes
-of stack in the worst case**, resolving an address against a list of IRKs.
-Most of it is the AES frame, and most of that is the key schedule (176 of
-240 bytes): expanded on the stack and wiped before return, never kept in a
-static. The AD and HCI parsers need 72 bytes at most.
-**1.9 KB flash、0 字节 RAM、不依赖 libc（在符号层面检查过）。最坏情况 352 字节栈**，
-发生在用一组 IRK 解析地址时。大部分是 AES 的栈帧，其中又以密钥扩展为主
-（240 字节里占 176），放在栈上、返回前擦除，从不存进 static。AD 和 HCI 解析最多只要 72 字节。
+**2.4 KB of flash, zero RAM, no libc — checked at the symbol level. 496 bytes
+of stack in the worst case**, computing `g2`: its 80-byte message, CMAC's
+state and subkeys, and the AES frame, whose key schedule is 176 of its 240
+bytes — expanded on the stack and wiped before return, never kept in a
+static. Resolving an address needs 352; the AD and HCI parsers 72 at most.
+The one outside symbol is a compiler helper: M0+ has no divide instruction.
+**2.4 KB flash、0 字节 RAM、不依赖 libc（在符号层面检查过）。最坏情况 496 字节栈**，
+发生在计算 `g2` 时：80 字节消息、CMAC 的状态和子密钥，再加上 AES 的栈帧。解析地址需要
+352 字节，AD 和 HCI 解析最多 72 字节。唯一的外部符号是编译器的软件除法：M0+ 没有除法指令。
 
 ---
 
@@ -137,6 +150,7 @@ fixture 测试，fixture 由 Wireshark 解码——三个独立解析器互相�
 | `tx_power` always 127 | 127 means "not available"; legacy PDUs never carry it | Treat 127 as absent, not as +127 dBm |
 | `-Wconversion` errors on `uint8_t` arithmetic | Integer promotion: `a + b` is `int` | Explicit casts at every narrowing, compiled with `-Werror` |
 | `uint8_t block[16] = {0}` needed libc on Cortex-M0+ | GCC emitted a call to `memset` for the initialiser on M0+ (not on M4), which `-ffreestanding -fno-builtin` does not prevent. The build only compiled, never linked, so nothing noticed | Zero it with `ble_wipe()`, whose volatile stores cannot become a call; `size-cortex-m.sh` now fails on any symbol the library does not define itself |
+| `__aeabi_uidivmod` appeared on M0+ only | Cortex-M0+ has no divide instruction, so `g2 % 1000000u` calls libgcc's software division. Division by 16 in the CMAC is a shift and needs nothing | libgcc ships with the compiler, not libc, so `__aeabi_*` is allowed and listed with the object that needs it; the check still fails on `memset` (tested by putting the old `= {0}` back) |
 | Per-function stack looked like the answer | `.su` gives each function's own frame; callers stack them. Inlining also hides functions the source calls | `stack-depth.py` adds frames along the call graph GCC emitted |
 
 **Not claimed:** the AES here uses a lookup-table S-box, so it is not
@@ -160,7 +174,11 @@ controller's AES (`HCI_LE_Encrypt`) or a hardware block.
   changing?"* — The headphones' address is `prand ‖ ah(IRK, prand)`. The phone
   got the IRK at pairing; it recomputes `ah` over the first 3 bytes and
   compares with the last 3. Nobody without the IRK can do that.
-- *"How much stack does it need?"* — 352 bytes on an M0+, found by adding
+- *"Would you write your own crypto in a product?"* — No: the chip's
+  hardware AES and a qualified stack. Writing CMAC and `g2` against the
+  RFC's and the spec's vectors is how I learned what a pairing computes and
+  where byte orders flip, which is what debugging a failed pairing needs.
+- *"How much stack does it need?"* — 496 bytes on an M0+, found by adding
   frames along the call graph GCC emitted, not by reading the source: the
   compiler inlines half of the AES into one frame. Plus whatever an interrupt
   stacks on top at the worst moment. It is also why the key schedule is not
@@ -187,12 +205,21 @@ controller's AES (`HCI_LE_Encrypt`) or a hardware block.
   and `ble_hci.c` all lay the reports out one after another. Written up,
   with the one place they differ, in [`docs/multi-report.md`](docs/multi-report.md).
 
-### Day 5 · Prove it / 证明它
+### Day 5 · Pairing cryptography / 配对密码学
+- [x] AES-CMAC from RFC 4493: subkeys by doubling in GF(2^128), constant
+  time in the secret bit; every official vector plus lengths 1–48 around
+  each block boundary, checked against pyca/cryptography.
+- [x] `g2` from Core Vol 3 Part H §2.2.9, Appendix D.5: 0x2f9ed5ba → 938554.
+- [ ] TODO(you): `f4` (the confirm value that stops an attacker choosing a
+  nonce after seeing the other side's) — one more CMAC call, vector in
+  Appendix D.2.
+
+### Day 6 · Prove it / 证明它
 - [x] Fuzz under ASan + UBSan, exactly-sized buffers.
 - [x] Differential test against tshark on the full 40-minute capture.
 - [x] Cross-compile for Cortex-M0+ and M4 with no libc.
 - [x] Worst-case stack along the call chain, not per function:
-  `tools/stack-depth.py` — 352 bytes on M0+, 328 on M4.
+  `tools/stack-depth.py` — 496 bytes on M0+ (`g2`), 504 on M4.
 - [x] Prove "no libc" at the symbol level. It was not true: `memset` on M0+.
 
 - **Caught by cross-checking with tshark:** a fixture labelled as an
@@ -207,12 +234,12 @@ Last run on 2026-09-30 (the capture itself is from 2026-09-27), Ubuntu 24.04, ke
 
 | Command | Result |
 |---|---|
-| `./build/ble_tests` | 274 checks, 0 failed; 200 000 fuzz inputs, all in bounds |
+| `./build/ble_tests` | 294 checks, 0 failed; 200 000 fuzz inputs, all in bounds |
 | `./build-asan/ble_tests` | same, no ASan/UBSan report |
 | `python3 tools/diff_vs_tshark.py …40min.pcapng` | 59 437 reports × 6 fields, 0 mismatches |
-| `doxygen Doxyfile` | 0 warnings with warnings as errors; 69 HTML pages |
-| `./tools/size-cortex-m.sh` | M0+: 1971 B text, 0 data, 0 bss · M4: 2067 B; no symbol needed from outside the library on either |
-| `./tools/stack-depth.py` | Worst case 352 B on M0+, 328 B on M4, both through `ble_rpa_resolve_any` |
+| `doxygen Doxyfile` | 0 warnings with warnings as errors; 82 HTML pages |
+| `./tools/size-cortex-m.sh` | M0+: 2423 B text, 0 data, 0 bss · M4: 2557 B; no libc symbol on either, one libgcc helper (`__aeabi_uidivmod`) on M0+ |
+| `./tools/stack-depth.py` | Worst case 496 B on M0+ and 504 B on M4, both through `ble_sc_g2` |
 
 Not run: on real Cortex-M hardware. The size and stack numbers come from the
 cross-compiler, not from a board.

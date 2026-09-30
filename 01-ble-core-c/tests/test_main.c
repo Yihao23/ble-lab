@@ -20,6 +20,8 @@ int main(void)
     suite_hci();
     suite_hci_status();
     suite_hci_multi();
+    suite_cmac();
+    suite_sc();
     suite_fuzz();
 
     printf("\n%d checks, %d failed\n", g_checks, g_failures);

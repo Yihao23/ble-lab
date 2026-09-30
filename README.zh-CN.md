@@ -65,7 +65,7 @@ payload:  u ──────────► v ───────►     每
 
 | # | 项目 | 证明了什么 | 状态 |
 |---|---|---|---|
-| **01** | [C 语言 BLE 核心库](01-ble-core-c/) | 能写跑在单片机上的解析器：不用堆、不依赖 libc、每个长度都检查 | ✅ 274 项检查、ASan+UBSan fuzz、59 437 个报告与 Wireshark 0 差异、Cortex-M0+ 上 1.9 KB flash、最坏 352 B 栈 |
+| **01** | [C 语言 BLE 核心库](01-ble-core-c/) | 能写跑在单片机上的解析器：不用堆、不依赖 libc、每个长度都检查 | ✅ 294 项检查、ASan+UBSan fuzz、59 437 个报告与 Wireshark 0 差异、Cortex-M0+ 上 2.4 KB flash、最坏 496 B 栈 |
 | **02** | [基于 BlueZ 的 GATT 外设](02-gatt-peripheral/) | 能设计 GATT 服务器：数据格式、错误码、notification 策略、安全等级 | ✅ 24 个测试，已注册并广播，经 HCI 验证 |
 | **03** | [读懂 HCI](03-hci-capture/) | 能读懂主机-控制器边界，现场 bug 在这里定性 | ✅ 40 分钟抓包，6 节报告 |
 | **04** | [广播隐私审计](04-adv-privacy/) | 能把抓包变成别人可以据此行动的结论 | ✅ 41 个测试、10 条规则、脱敏报告 |
@@ -111,7 +111,7 @@ response 里、用的是笔记本的 public 地址。第一条已修复并验证
 | L3–L4 | 物理层距离界定 | —— 在 03 §4 中作为 RSSI 近距判断失败的原因讨论；这里没有代码 |
 | L5–L6 | 定位、GPS 欺骗 | —— 见单独的 [gps-security-lab](../gps-security-lab/) |
 | L7 | 干扰、跳频 | 广播信道跳频发生在 HCI 之下，主机看不到（03 §3） |
-| L8 | 认证与机密性 | IRK 与 `ah()`（01）；需加密认证的 GATT 写（02，配对仍是 TODO） |
+| L8 | 认证与机密性 | IRK 与 `ah()`、AES-CMAC 与数字比较值 `g2`（01）；需加密认证的 GATT 写（02，配对仍是 TODO） |
 | L9 | WiFi | —— 未涉及 |
 | L10 | 位置隐私、标识符轮换、CrossLink | 整个项目 04 |
 
@@ -123,7 +123,7 @@ response 里、用的是笔记本的 public 地址。第一条已修复并验证
 # 1. C 库：编译、测试、在 sanitizer 下 fuzz
 cd 01-ble-core-c
 cmake -S . -B build-asan -G Ninja -DBLE_SANITIZE=ON && cmake --build build-asan
-./build-asan/ble_tests                      # 274 checks, 0 failed
+./build-asan/ble_tests                      # 294 checks, 0 failed
 
 # 2. 抓你周围 5 分钟的空中流量，逐层读
 cd ../03-hci-capture
@@ -161,7 +161,7 @@ python3 -m bleprivacy ../03-hci-capture/captures/scan-*.pcapng
 ## 测试
 
 ```bash
-cd 01-ble-core-c    && cmake -S . -B build -G Ninja && cmake --build build && ./build/ble_tests   # 274 checks
+cd 01-ble-core-c    && cmake -S . -B build -G Ninja && cmake --build build && ./build/ble_tests   # 294 checks
 cd 02-gatt-peripheral && python3 -m unittest discover -s tests -t .                                # 24 tests
 cd 04-adv-privacy     && python3 -m unittest discover -s tests -t .                                # 41 tests
 ```

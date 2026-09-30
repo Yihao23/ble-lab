@@ -70,7 +70,7 @@ Project **04** found exactly this, on air, in devices around a laptop.
 
 | # | Project | What it proves | Status |
 |---|---|---|---|
-| **01** | [BLE core in C](01-ble-core-c/) | You can write the parser that runs on the microcontroller: no heap, no libc, every length checked | ✅ 274 checks, ASan+UBSan fuzz, 0 mismatches vs Wireshark on 59 437 reports, 1.9 KB flash and 352 B worst-case stack on Cortex-M0+ |
+| **01** | [BLE core in C](01-ble-core-c/) | You can write the parser that runs on the microcontroller: no heap, no libc, every length checked | ✅ 294 checks, ASan+UBSan fuzz, 0 mismatches vs Wireshark on 59 437 reports, 2.4 KB flash and 496 B worst-case stack on Cortex-M0+ |
 | **02** | [GATT peripheral on BlueZ](02-gatt-peripheral/) | You can design a GATT server: formats, error codes, notification policy, security levels | ✅ 24 tests, registered and advertising; HCI-verified |
 | **03** | [Reading HCI](03-hci-capture/) | You can read the host–controller boundary, where field bugs are decided | ✅ 40-min capture, 6-section report |
 | **04** | [Advertising privacy audit](04-adv-privacy/) | You can turn a capture into findings someone can act on | ✅ 41 tests, 10 rules, pseudonymised reports |
@@ -127,7 +127,7 @@ summer 2026). What each lecture became, and what it did not:
 | L3–L4 | Distance bounding at the physical layer | — discussed in 03 §4 as the reason RSSI proximity fails; no code here |
 | L5–L6 | Positioning, GPS spoofing | — see the separate [gps-security-lab](../gps-security-lab/) |
 | L7 | Jamming, FHSS | Advertising-channel hopping is below HCI and invisible to the host (03 §3) |
-| L8 | Authentication and confidentiality | IRK and `ah()` (01); encrypt-authenticated GATT write (02, pairing still TODO) |
+| L8 | Authentication and confidentiality | IRK and `ah()`, AES-CMAC and the numeric-comparison value `g2` (01); encrypt-authenticated GATT write (02, pairing still TODO) |
 | L9 | WiFi | — not covered |
 | L10 | Location privacy, identifier rotation, CrossLink | All of project 04 |
 
@@ -139,7 +139,7 @@ summer 2026). What each lecture became, and what it did not:
 # 1. the C library: build, test, fuzz under sanitizers
 cd 01-ble-core-c
 cmake -S . -B build-asan -G Ninja -DBLE_SANITIZE=ON && cmake --build build-asan
-./build-asan/ble_tests                      # 274 checks, 0 failed
+./build-asan/ble_tests                      # 294 checks, 0 failed
 
 # 2. five minutes of the air around you, read layer by layer
 cd ../03-hci-capture
@@ -179,7 +179,7 @@ repository finds none.
 ## Tests
 
 ```bash
-cd 01-ble-core-c    && cmake -S . -B build -G Ninja && cmake --build build && ./build/ble_tests   # 274 checks
+cd 01-ble-core-c    && cmake -S . -B build -G Ninja && cmake --build build && ./build/ble_tests   # 294 checks
 cd 02-gatt-peripheral && python3 -m unittest discover -s tests -t .                                # 24 tests
 cd 04-adv-privacy     && python3 -m unittest discover -s tests -t .                                # 41 tests
 ```
