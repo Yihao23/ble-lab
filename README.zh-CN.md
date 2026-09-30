@@ -66,7 +66,7 @@ payload:  u ──────────► v ───────►     每
 | # | 项目 | 证明了什么 | 状态 |
 |---|---|---|---|
 | **01** | [C 语言 BLE 核心库](01-ble-core-c/) | 能写跑在单片机上的解析器：不用堆、不依赖 libc、每个长度都检查 | ✅ 294 项检查、ASan+UBSan fuzz、59 437 个报告与 Wireshark 0 差异、Cortex-M0+ 上 2.4 KB flash、最坏 496 B 栈 |
-| **02** | [基于 BlueZ 的 GATT 外设](02-gatt-peripheral/) | 能设计 GATT 服务器：数据格式、错误码、notification 策略、安全等级 | ✅ 24 个测试，已注册并广播，经 HCI 验证 |
+| **02** | [基于 BlueZ 的 GATT 外设](02-gatt-peripheral/) | 能设计 GATT 服务器：数据格式、错误码、notification 策略、安全等级 | ✅ 25 个测试；真实手机读取、订阅、写入，经 HCI 验证 |
 | **03** | [读懂 HCI](03-hci-capture/) | 能读懂主机-控制器边界，现场 bug 在这里定性 | ✅ 40 分钟抓包，6 节报告 |
 | **04** | [广播隐私审计](04-adv-privacy/) | 能把抓包变成别人可以据此行动的结论 | ✅ 41 个测试、10 条规则、脱敏报告 |
 
@@ -87,6 +87,11 @@ Discoverable 标志持续 40 分钟（规范上限 180 秒）——而且 compan
 **HCI 日志三次推翻了 D-Bus 文档。** 项目 02 的外设广播里完全没有 Flags、名字在 scan
 response 里、用的是笔记本的 public 地址。第一条已修复并验证；第三条正是项目 04 的 P001，
 对象是我自己的设备。[项目 02](02-gatt-peripheral/)。
+
+**测试全部通过，第一部连上来的手机却什么都读不到。** 每次读取都返回 ATT `0x0E`：
+一个叫 `_name` 的辅助方法，被 D-Bus 父类构造函数里同名的属性悄悄覆盖了。这一层直到
+真实客户端连上来之前从未被调用过。另外，设备选择的 `0xFF`（超出范围）到了手机上变成了
+`0x80`：BlueZ 5.72 根本不允许 D-Bus 应用发送 `0xE0`–`0xFF`。[项目 02](02-gatt-peripheral/)。
 
 **扫描器自己也在轮换。** bluetoothd 的主动扫描每 10.75 秒重启一次并换一个新的不可解析
 地址——40 分钟 224 个，互不相同——因为每个 `SCAN_REQ` 都带着扫描者地址。
@@ -162,7 +167,7 @@ python3 -m bleprivacy ../03-hci-capture/captures/scan-*.pcapng
 
 ```bash
 cd 01-ble-core-c    && cmake -S . -B build -G Ninja && cmake --build build && ./build/ble_tests   # 294 checks
-cd 02-gatt-peripheral && python3 -m unittest discover -s tests -t .                                # 24 tests
+cd 02-gatt-peripheral && python3 -m unittest discover -s tests -t .                                # 25 tests
 cd 04-adv-privacy     && python3 -m unittest discover -s tests -t .                                # 41 tests
 ```
 

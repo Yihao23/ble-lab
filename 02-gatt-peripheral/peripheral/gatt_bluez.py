@@ -136,7 +136,7 @@ class Characteristic(dbus.service.Object):
     @dbus.service.method(GATT_CHRC_IFACE, in_signature="a{sv}", out_signature="ay")
     def ReadValue(self, options):
         value = self.device.read(self.key)
-        log.info("read  %-10s -> %s   (from %s)", self._name(), value.hex(),
+        log.info("read  %-10s -> %s   (from %s)", self._label(), value.hex(),
                  options.get("device", "?"))
         return dbus.Array(value, signature="y")
 
@@ -146,21 +146,21 @@ class Characteristic(dbus.service.Object):
         try:
             self.device.write(self.key, data, now=self.clock())
         except model.AttError as err:
-            log.warning("write %-10s <- %s   REFUSED %s", self._name(), data.hex(), err)
+            log.warning("write %-10s <- %s   REFUSED %s", self._label(), data.hex(), err)
             raise att_error_to_dbus(err)
-        log.info("write %-10s <- %s   ok", self._name(), data.hex())
+        log.info("write %-10s <- %s   ok", self._label(), data.hex())
 
     @dbus.service.method(GATT_CHRC_IFACE)
     def StartNotify(self):
         if self.policy is not None:
             self.policy.subscribe(True)
-            log.info("notify %-10s subscribed", self._name())
+            log.info("notify %-10s subscribed", self._label())
 
     @dbus.service.method(GATT_CHRC_IFACE)
     def StopNotify(self):
         if self.policy is not None:
             self.policy.subscribe(False)
-            log.info("notify %-10s unsubscribed", self._name())
+            log.info("notify %-10s unsubscribed", self._label())
 
     @dbus.service.signal(DBUS_PROP_IFACE, signature="sa{sv}as")
     def PropertiesChanged(self, interface, changed, invalidated):
@@ -169,9 +169,13 @@ class Characteristic(dbus.service.Object):
     def notify(self, value):
         self.PropertiesChanged(GATT_CHRC_IFACE,
                                {"Value": dbus.Array(value, signature="y")}, [])
-        log.info("notify %-10s -> %s", self._name(), value.hex())
+        log.info("notify %-10s -> %s", self._label(), value.hex())
 
-    def _name(self):
+    def _label(self):
+        # Not "_name": dbus.service.Object.__init__ sets self._name to the
+        # bus name (None here), which silently replaced a method of that name.
+        # Every read then raised TypeError, and bluetoothd sent the phone
+        # ATT error 0x0E, Unlikely Error.
         return {model.BATTERY_LEVEL: "battery", model.TEMPERATURE: "temp",
                 model.SAMPLE_INTERVAL: "interval", model.IDENTIFY: "identify"}.get(self.key, "?")
 

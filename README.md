@@ -71,7 +71,7 @@ Project **04** found exactly this, on air, in devices around a laptop.
 | # | Project | What it proves | Status |
 |---|---|---|---|
 | **01** | [BLE core in C](01-ble-core-c/) | You can write the parser that runs on the microcontroller: no heap, no libc, every length checked | ✅ 294 checks, ASan+UBSan fuzz, 0 mismatches vs Wireshark on 59 437 reports, 2.4 KB flash and 496 B worst-case stack on Cortex-M0+ |
-| **02** | [GATT peripheral on BlueZ](02-gatt-peripheral/) | You can design a GATT server: formats, error codes, notification policy, security levels | ✅ 24 tests, registered and advertising; HCI-verified |
+| **02** | [GATT peripheral on BlueZ](02-gatt-peripheral/) | You can design a GATT server: formats, error codes, notification policy, security levels | ✅ 25 tests; a real phone reads, subscribes and writes — HCI-verified |
 | **03** | [Reading HCI](03-hci-capture/) | You can read the host–controller boundary, where field bugs are decided | ✅ 40-min capture, 6-section report |
 | **04** | [Advertising privacy audit](04-adv-privacy/) | You can turn a capture into findings someone can act on | ✅ 41 tests, 10 rules, pseudonymised reports |
 
@@ -98,6 +98,14 @@ Bluetooth SIG's assigned numbers.
 peripheral in project 02 advertised with no Flags AD at all, put its name in
 the scan response, and used the laptop's public address. The first is fixed
 and verified; the third is finding P001 of project 04, about my own device.
+[Project 02](02-gatt-peripheral/).
+
+**All tests passed; the first phone to connect could not read a thing.**
+Every read came back ATT `0x0E`: a helper method named `_name` was silently
+overwritten by an attribute of the same name that the D-Bus base class sets
+in its constructor. Nothing had run that layer until a real client did. And
+the `0xFF` Out of Range the device chooses reaches the phone as `0x80`:
+BlueZ 5.72 cannot send `0xE0`–`0xFF` from a D-Bus application at all.
 [Project 02](02-gatt-peripheral/).
 
 **The scanner rotates too.** bluetoothd's active scan restarts every 10.75 s
@@ -180,7 +188,7 @@ repository finds none.
 
 ```bash
 cd 01-ble-core-c    && cmake -S . -B build -G Ninja && cmake --build build && ./build/ble_tests   # 294 checks
-cd 02-gatt-peripheral && python3 -m unittest discover -s tests -t .                                # 24 tests
+cd 02-gatt-peripheral && python3 -m unittest discover -s tests -t .                                # 25 tests
 cd 04-adv-privacy     && python3 -m unittest discover -s tests -t .                                # 41 tests
 ```
 
