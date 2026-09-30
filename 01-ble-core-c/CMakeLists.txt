@@ -28,6 +28,7 @@ add_executable(ble_tests
     tests/test_ad_helpers.c
     tests/test_hci.c
     tests/test_hci_status.c
+    tests/test_hci_multi.c
     tests/test_fuzz.c)
 target_link_libraries(ble_tests PRIVATE ble_core)
 target_compile_options(ble_tests PRIVATE -Wall -Wextra -Werror)
