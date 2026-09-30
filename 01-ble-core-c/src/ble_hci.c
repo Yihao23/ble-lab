@@ -22,6 +22,9 @@
  */
 #define EXT_FIXED    24u
 
+/** @brief Bits 5–6 of the extended event type hold the data status. */
+#define DATA_STATUS_SHIFT 5u
+
 /**
  * @par Implementation
  * Validate the LE Meta header and set the iterator to the first report.
@@ -135,4 +138,20 @@ ble_hci_status_t ble_hci_adv_next(ble_adv_iter_t *it, ble_adv_report_t *out)
 malformed:
     it->remaining = 0u;                 /* refuse to walk any further */
     return BLE_HCI_ERR_MALFORMED;
+}
+
+/**
+ * @par Implementation
+ * A legacy report is answered before evt_type is read: in that format the
+ * field is a 1-byte PDU type with no status bits. Otherwise mask bits 5–6
+ * and shift them down, which maps 00/01/10/11 straight onto the enum.
+ */
+ble_adv_data_status_t ble_adv_report_data_status(const ble_adv_report_t *r)
+{
+    if (r->from_legacy_event) {
+        return BLE_ADV_DATA_COMPLETE;
+    }
+    uint16_t status_bits = (uint16_t)(r->evt_type & BLE_EXT_EVT_DATA_STATUS_MASK);  /* bits 5-6 */
+    status_bits >>= DATA_STATUS_SHIFT;
+    return (ble_adv_data_status_t)status_bits;
 }

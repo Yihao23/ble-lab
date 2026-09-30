@@ -64,6 +64,7 @@ void suite_rpa(void);    /**< Address kinds, `ah()`, RPA make/resolve. See test_
 void suite_ad(void);     /**< AD iterator and helpers. See test_ad.c. */
 void suite_hci(void);    /**< HCI report parser, synthetic and real events. See test_hci.c. */
 void suite_ad_helpers(void);   /**< Task 1: flags, name, service data. See test_ad_helpers.c. */
+void suite_hci_status(void);   /**< Task 2: extended report data status. See test_hci_status.c. */
 void suite_fuzz(void);   /**< Random input, half shaped like LE Meta events, under the sanitizers. See test_fuzz.c. */
 
 #endif

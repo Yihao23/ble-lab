@@ -12,7 +12,7 @@ BLE host 里每一条广播都要经过的那几段代码，按固件的写法�
 | `ble_aes` | AES-128 encrypt, one block — all `ah()` needs | AES-128 单块加密，`ah()` 只需要这个 |
 | `ble_rpa` | Address kind from the top two bits, `ah()`, make and resolve a Resolvable Private Address | 地址类型判定、`ah()`、生成/解析 RPA |
 | `ble_ad` | Iterate Advertising Data structures without ever reading past the buffer; read Flags, the device name and 16-bit service data | 安全遍历 AD 结构；读取 Flags、设备名、16 位服务数据 |
-| `ble_hci` | Iterate the reports inside an HCI LE Advertising Report event, legacy (0x02) and extended (0x0D) | 解析 HCI 广播报告事件 |
+| `ble_hci` | Iterate the reports inside an HCI LE Advertising Report event, legacy (0x02) and extended (0x0D); tell complete, fragmented and truncated data apart | 解析 HCI 广播报告事件；区分完整、分段、截断的数据 |
 
 ---
 
@@ -21,7 +21,7 @@ BLE host 里每一条广播都要经过的那几段代码，按固件的写法�
 ```bash
 cd 01-ble-core-c
 cmake -S . -B build -G Ninja && cmake --build build
-./build/ble_tests                                   # 222 checks + 200k-input fuzz
+./build/ble_tests                                   # 235 checks + 200k-input fuzz
 
 cmake -S . -B build-asan -G Ninja -DBLE_SANITIZE=ON && cmake --build build-asan
 ./build-asan/ble_tests                              # same, under ASan + UBSan
@@ -41,7 +41,7 @@ doxygen Doxyfile && xdg-open build/docs/html/index.html
 ```
   200000 inputs, 215848 AD structures, 43915 reports parsed, all in bounds
 
-222 checks, 0 failed
+235 checks, 0 failed
 ```
 ```
 59437 reports compared on 6 fields each (356622 values)
@@ -51,7 +51,7 @@ reports whose AD payload is malformed: 0
 ```
 == cortex-m0plus (-Os, thumb) ==
    text    data     bss     dec     hex filename
-   1955       0       0    1955     7a3 (TOTALS)
+   1973       0       0    1973     7b5 (TOTALS)
 -- worst-case stack per function (bytes) --
 240     ble_aes.c:95:6:ble_aes128_encrypt
 56      ble_rpa.c:30:6:ble_ah
@@ -188,11 +188,11 @@ On 2026-09-27, Ubuntu 24.04, kernel 7.0, gcc 13, Intel AX201, BlueZ 5.72:
 
 | Command | Result |
 |---|---|
-| `./build/ble_tests` | 222 checks, 0 failed; 200 000 fuzz inputs, all in bounds |
+| `./build/ble_tests` | 235 checks, 0 failed; 200 000 fuzz inputs, all in bounds |
 | `./build-asan/ble_tests` | same, no ASan/UBSan report |
 | `python3 tools/diff_vs_tshark.py …40min.pcapng` | 59 437 reports × 6 fields, 0 mismatches |
 | `doxygen Doxyfile` | 0 warnings with warnings as errors; 45 HTML pages |
-| `./tools/size-cortex-m.sh` | M0+: 1955 B text, 0 data, 0 bss, 240 B worst frame · M4: 2045 B, 232 B |
+| `./tools/size-cortex-m.sh` | M0+: 1973 B text, 0 data, 0 bss, 240 B worst frame · M4: 2061 B, 232 B |
 
 Not run: on real Cortex-M hardware. The size and stack numbers come from the
 cross-compiler, not from a board.

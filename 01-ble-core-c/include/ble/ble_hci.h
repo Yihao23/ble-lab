@@ -140,6 +140,32 @@ ble_hci_status_t ble_hci_adv_iter_init(ble_adv_iter_t *it, const uint8_t *evt, s
  */
 ble_hci_status_t ble_hci_adv_next(ble_adv_iter_t *it, ble_adv_report_t *out);
 
+/**
+ * @brief Data status of an extended advertising report: bits 5–6 of the
+ *        event type (Core Vol 4 Part E, 7.7.65.13).
+ *
+ * Extended advertising data can be up to 1650 bytes, more than one HCI
+ * event carries. The controller then sends it as several reports; every
+ * report but the last says ::BLE_ADV_DATA_MORE.
+ */
+typedef enum {
+    BLE_ADV_DATA_COMPLETE  = 0,  /**< `00`: this report holds the rest of the data. */
+    BLE_ADV_DATA_MORE      = 1,  /**< `01`: incomplete, more reports will follow. */
+    BLE_ADV_DATA_TRUNCATED = 2,  /**< `10`: incomplete, and the rest will never come. */
+    BLE_ADV_DATA_RESERVED  = 3   /**< `11`: reserved for future use. */
+} ble_adv_data_status_t;
+
+/**
+ * @brief Read the data status of a report.
+ *
+ * @param[in] r  A report returned by ble_hci_adv_next().
+ * @return The status from bits 5–6 of @c r->evt_type. A report parsed from a
+ *         legacy `0x02` event is always ::BLE_ADV_DATA_COMPLETE: that format
+ *         has no status bits, and its event type is a different field that
+ *         must not be read as if it had them.
+ */
+ble_adv_data_status_t ble_adv_report_data_status(const ble_adv_report_t *r);
+
 #ifdef __cplusplus
 }
 #endif

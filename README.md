@@ -70,7 +70,7 @@ Project **04** found exactly this, on air, in devices around a laptop.
 
 | # | Project | What it proves | Status |
 |---|---|---|---|
-| **01** | [BLE core in C](01-ble-core-c/) | You can write the parser that runs on the microcontroller: no heap, no libc, every length checked | ✅ 222 checks, ASan+UBSan fuzz, 0 mismatches vs Wireshark on 59 437 reports, 1.9 KB on Cortex-M0+ |
+| **01** | [BLE core in C](01-ble-core-c/) | You can write the parser that runs on the microcontroller: no heap, no libc, every length checked | ✅ 235 checks, ASan+UBSan fuzz, 0 mismatches vs Wireshark on 59 437 reports, 1.9 KB on Cortex-M0+ |
 | **02** | [GATT peripheral on BlueZ](02-gatt-peripheral/) | You can design a GATT server: formats, error codes, notification policy, security levels | ✅ 24 tests, registered and advertising; HCI-verified |
 | **03** | [Reading HCI](03-hci-capture/) | You can read the host–controller boundary, where field bugs are decided | ✅ 40-min capture, 6-section report |
 | **04** | [Advertising privacy audit](04-adv-privacy/) | You can turn a capture into findings someone can act on | ✅ 41 tests, 10 rules, pseudonymised reports |
@@ -139,7 +139,7 @@ summer 2026). What each lecture became, and what it did not:
 # 1. the C library: build, test, fuzz under sanitizers
 cd 01-ble-core-c
 cmake -S . -B build-asan -G Ninja -DBLE_SANITIZE=ON && cmake --build build-asan
-./build-asan/ble_tests                      # 222 checks, 0 failed
+./build-asan/ble_tests                      # 235 checks, 0 failed
 
 # 2. five minutes of the air around you, read layer by layer
 cd ../03-hci-capture
@@ -179,7 +179,7 @@ repository finds none.
 ## Tests
 
 ```bash
-cd 01-ble-core-c    && cmake -S . -B build -G Ninja && cmake --build build && ./build/ble_tests   # 222 checks
+cd 01-ble-core-c    && cmake -S . -B build -G Ninja && cmake --build build && ./build/ble_tests   # 235 checks
 cd 02-gatt-peripheral && python3 -m unittest discover -s tests -t .                                # 24 tests
 cd 04-adv-privacy     && python3 -m unittest discover -s tests -t .                                # 41 tests
 ```

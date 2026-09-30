@@ -18,6 +18,7 @@ int main(void)
     suite_ad();
     suite_ad_helpers();
     suite_hci();
+    suite_hci_status();
     suite_fuzz();
 
     printf("\n%d checks, %d failed\n", g_checks, g_failures);
