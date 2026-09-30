@@ -41,6 +41,19 @@ add_executable(bleparse tools/bleparse.c)
 target_link_libraries(bleparse PRIVATE ble_core)
 target_compile_options(bleparse PRIVATE ${BLE_WARNINGS})
 
+add_executable(bleg2 tools/bleg2.c)
+target_link_libraries(bleg2 PRIVATE ble_core)
+target_compile_options(bleg2 PRIVATE ${BLE_WARNINGS})
+
+# bleg2 takes values as SMP sends them, LSB first: the Appendix D.5 vector,
+# byte-reversed, must still give the six digits the spec's g2 gives.
+add_test(NAME bleg2_spec_vector COMMAND bleg2
+    e69d350e480103ccdbfdf4ac1191f4efb9a5f9e9a7832c5e2cbe97f2d203b020
+    fdc57ff449dd4f6bfb7c9df1c29acb592ae7d4eefbfc0a909abbf6323d8b1855
+    abae2b71ecb2ffff3e7377d15484cbd5
+    cfc43dfff78365216e5fa725cce7e8a6)
+set_tests_properties(bleg2_spec_vector PROPERTIES PASS_REGULAR_EXPRESSION "g2 0x2f9ed5ba  compare value 938554")
+
 if(BLE_SANITIZE)
     foreach(t ble_core ble_tests bleparse)
         target_compile_options(${t} PRIVATE -fsanitize=address,undefined

@@ -34,7 +34,7 @@ notification。它不碰射频也不碰 D-Bus，移植到 Zephyr / nRF SDK 的�
 | Interval, wrong length | `0x0D` Invalid Attribute Value Length | `0x0D` | The length is wrong, not the value |
 | Interval, 50 ms | `0xFF` Out of Range | **`0x80`** — seen on air | CSS names 0xFF for exactly this, but BlueZ cannot send it (below) |
 | Identify, 0 or 31 s | `0x13` Value Not Allowed | `0x80` by the same mapping; not seen on air (needs pairing first) | Same limit |
-| Identify, unencrypted | — | expected `0x0F`/`0x05` | The stack refuses before `model.py` sees anything; not yet seen on air |
+| Identify, unencrypted | — | `0x05` Insufficient Authentication — seen on air | The stack refuses before `model.py` sees anything; Android answers by starting to pair |
 
 **What BlueZ 5.72 can send.** `dbus_error_to_att_ecode()` in
 `src/gatt-database.c` maps `org.bluez.Error.Failed` to `0x80` — or to the
@@ -128,6 +128,44 @@ both sessions.
 
 ---
 
+## Pairing / 配对
+
+Same phone, same day, the laptop's agent in `bluetoothctl`, an HCI capture
+running. `01-ble-core-c/tools/pairing_from_capture.py` reads the capture.
+
+1. **Writing Identify started it.** The write came back `0x05` Insufficient
+   Authentication, and Android sent Pairing Request on its own:
+   `AuthReq: Bonding, MITM, SecureConnection`.
+2. **Numeric comparison.** Both sides declared KeyboardDisplay, and with LE
+   Secure Connections that pair selects numeric comparison — the method
+   with MITM protection and a number on each screen.
+3. **Both screens showed 985572, and so did the library.** The phone's
+   dialog and `bluetoothctl` (`Confirm passkey 985572`) agreed. From the
+   capture, `pairing_from_capture.py` took the two public keys and the two
+   nonces off the air, checked it had read them right by recomputing the
+   laptop's commitment Cb = f4(PKbx, PKax, Nb, 0) and matching it to the
+   Pairing Confirm on air, and ran project 01's `ble_sc_g2`: **985572**.
+   The g2 written against the spec's test vector, confirmed on a real
+   pairing between a real phone and this laptop.
+   **两块屏幕都显示 985572，01 的 `ble_sc_g2` 从抓包里算出的也是 985572。**
+4. **The first attempt was not confirmed** and has no DHKey Check; its
+   screens would have shown 941252. New nonces, new number.
+5. **13 seconds** between the last Pairing Random and the phone's DHKey
+   Check: a person reading two screens.
+6. **Keys distributed after encryption:** the phone sent its IRK and its
+   identity address, and `bluetoothctl` moved the device from the RPA it
+   paired with to that public identity address, bonded. The laptop sent no
+   IRK — it has no RPA to resolve. The phone still advertises RPAs; only
+   the bonded laptop can now tell they are the same phone.
+   **手机交出了 IRK 和身份地址，笔记本从此能认出它不断变化的 RPA。**
+7. **Identify then accepted:** `write identify <- 05 ok`, five blinks.
+
+The identity address and the IRK stay out of this repository: with them,
+anyone could recognise that phone's every RPA.
+身份地址和 IRK 不写进仓库：拿到它们就能认出这部手机的每一个 RPA。
+
+---
+
 ## What the HCI capture showed / HCI 抓包揭示了什么
 
 The first version was written from the D-Bus documentation. The capture
@@ -163,7 +201,7 @@ disagreed with it three times:
 | `peripheral/__main__.py` | Register, tick at the current sample interval, unregister on exit |
 | `tests/test_model.py` | 24 tests on encoding, validation, error codes and notification policy |
 | `tests/test_dbus_names.py` | No D-Bus class may shadow an attribute `dbus.service.Object` sets on itself |
-| `captures/` | HCI captures: before and after the Flags fix, and the two phone sessions. Git-ignored: they contain the adapter's and the phone's addresses |
+| `captures/` | HCI captures: before and after the Flags fix, the two phone sessions, and the pairing. Git-ignored: they contain the adapter's and the phone's addresses, and the pairing's keys |
 
 ---
 
@@ -197,6 +235,10 @@ disagreed with it three times:
   A method name clashed with an attribute the base class sets. The capture
   showed `0x0E` on air, the program log showed the `TypeError`, and now a
   test checks for the clash.
+- *"How do you know your g2 is right?"* — The spec's vector, and then a real
+  pairing: both screens showed 985572, and the library computed 985572 from
+  the public keys and nonces in the capture — after recomputing the
+  commitment Cb from the same values proved they had been read correctly.
 - *"How would this look on an nRF52?"* — `model.py` becomes the write/read
   handlers; `NotifyPolicy` becomes a timer; the GATT table becomes a static
   `BT_GATT_SERVICE_DEFINE` in Zephyr. The decisions do not change.
@@ -221,8 +263,11 @@ disagreed with it three times:
 - [ ] TODO(you): screenshots of the phone for the README.
 - [ ] TODO(you): lower the sample interval to 100 ms and confirm on air that
   notifications never come closer than 0.5 s.
-- [ ] TODO(you): write Identify before pairing (expect a refusal), pair with
-  passkey, write again. Which pairing method did the phone pick, and why?
+- [x] Write Identify before pairing: refused with `0x05`; the phone paired
+  with numeric comparison (both KeyboardDisplay, Secure Connections), and
+  the write went through. The six digits recomputed from the capture.
+- [ ] TODO(you): reconnect and show from a capture that a bonded link
+  encrypts with the stored LTK — LE Long Term Key Request, no SMP at all.
 - [ ] TODO(you): set `Privacy = device` in `/etc/bluetooth/main.conf`, restart
   bluetoothd, capture again, and confirm the own address type is no longer
   public.
@@ -241,7 +286,9 @@ Android phone with nRF Connect:
 | same, after `Discoverable=True` | Advertising Data = Flags `0x06` + UUID16 `180F 181A`, 9 bytes; name in scan response |
 | `python3 -m peripheral --seconds 1800` + phone + `dumpcap` | Connected; every read answered `0x0E` — the `_name` clash |
 | same, after the fix, `--seconds 1200` | Reads correct; 97 notifications, 0 errors; bad interval write refused, `0x80` on air |
+| same, `--seconds 1800`, `bluetoothctl` as agent | Numeric comparison, 985572 on both screens; Identify written after pairing |
+| `01-ble-core-c/tools/pairing_from_capture.py pairing-*.pcapng` | Cb matches f4 on air; `ble_sc_g2` → 985572 (and 941252 for the unconfirmed first attempt) |
 
-Not run yet: pairing and the authenticated write to Identify, and the
-0.5 s rate limit on air. Those are the TODOs above.
-还没跑过：配对与认证写、空中的 0.5 秒限速。就是上面的 TODO。
+Not run yet: the 0.5 s rate limit on air, reconnection with the stored
+key, and `Privacy = device`. Those are the TODOs above.
+还没跑过：空中的 0.5 秒限速、用已存密钥重连、`Privacy = device`。就是上面的 TODO。

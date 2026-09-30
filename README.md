@@ -71,7 +71,7 @@ Project **04** found exactly this, on air, in devices around a laptop.
 | # | Project | What it proves | Status |
 |---|---|---|---|
 | **01** | [BLE core in C](01-ble-core-c/) | You can write the parser that runs on the microcontroller: no heap, no libc, every length checked | ✅ 294 checks, ASan+UBSan fuzz, 0 mismatches vs Wireshark on 59 437 reports, 2.4 KB flash and 496 B worst-case stack on Cortex-M0+ |
-| **02** | [GATT peripheral on BlueZ](02-gatt-peripheral/) | You can design a GATT server: formats, error codes, notification policy, security levels | ✅ 25 tests; a real phone reads, subscribes and writes — HCI-verified |
+| **02** | [GATT peripheral on BlueZ](02-gatt-peripheral/) | You can design a GATT server: formats, error codes, notification policy, security levels | ✅ 25 tests; a real phone reads, subscribes, writes and pairs — HCI-verified |
 | **03** | [Reading HCI](03-hci-capture/) | You can read the host–controller boundary, where field bugs are decided | ✅ 40-min capture, 6-section report |
 | **04** | [Advertising privacy audit](04-adv-privacy/) | You can turn a capture into findings someone can act on | ✅ 41 tests, 10 rules, pseudonymised reports |
 
@@ -108,6 +108,14 @@ the `0xFF` Out of Range the device chooses reaches the phone as `0x80`:
 BlueZ 5.72 cannot send `0xE0`–`0xFF` from a D-Bus application at all.
 [Project 02](02-gatt-peripheral/).
 
+**The pairing arithmetic, checked on a real pairing.** A phone paired with
+this laptop by numeric comparison, and both screens showed 985572. Taking
+the two public keys and the two nonces off the HCI capture — after
+recomputing the laptop's commitment to prove they were read correctly —
+project 01's `ble_sc_g2` computes 985572. The code was written against the
+spec's test vector; the phone confirmed it.
+[Project 02](02-gatt-peripheral/) · [Project 01](01-ble-core-c/).
+
 **The scanner rotates too.** bluetoothd's active scan restarts every 10.75 s
 with a fresh non-resolvable address — 224 in 40 minutes, all distinct —
 because every `SCAN_REQ` carries the scanner's address.
@@ -135,7 +143,7 @@ summer 2026). What each lecture became, and what it did not:
 | L3–L4 | Distance bounding at the physical layer | — discussed in 03 §4 as the reason RSSI proximity fails; no code here |
 | L5–L6 | Positioning, GPS spoofing | — see the separate [gps-security-lab](../gps-security-lab/) |
 | L7 | Jamming, FHSS | Advertising-channel hopping is below HCI and invisible to the host (03 §3) |
-| L8 | Authentication and confidentiality | IRK and `ah()`, AES-CMAC and the numeric-comparison value `g2` (01); encrypt-authenticated GATT write (02, pairing still TODO) |
+| L8 | Authentication and confidentiality | IRK and `ah()`, AES-CMAC and the numeric-comparison value `g2` (01); a real numeric-comparison pairing and the authenticated write it unlocks (02) |
 | L9 | WiFi | — not covered |
 | L10 | Location privacy, identifier rotation, CrossLink | All of project 04 |
 
