@@ -2,6 +2,11 @@
 
 *[中文](README.zh-CN.md)*
 
+> ### [&#9654; Open the visual walkthrough](https://yihao23.github.io/ble-lab/)
+> One page, air to application: what runs at every hop, with the real
+> captures and logs behind each claim — and the pairing whose six digits
+> this repository's code computes.
+
 Bluetooth Low Energy from the bottom up, as an embedded developer meets it: the
 bytes a controller hands the host, the C that parses them on a microcontroller,
 a GATT server that makes decisions a phone depends on, and a privacy audit of

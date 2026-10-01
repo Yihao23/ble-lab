@@ -1,0 +1,502 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>ble-lab</title>
+<meta name="description" content="Bluetooth Low Energy from the air to the host: what runs at every hop, with the real captures and logs behind each claim.">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
+<style>
+  :root{
+    --bg:#FBFBFA; --surface:#FFFFFF; --surface-2:#F3F4F6;
+    --ink:#15181E; --ink-2:#3C434F; --muted:#6B7280;
+    --rule:#DCDFE5; --rule-2:#E9EBEF;
+    --air:#A9540F;  --air-wash:#FBF0E5;
+    --core:#146E72; --core-wash:#E4F1F1;
+    --gatt:#2F5DA8; --gatt-wash:#E8EEF8;
+    --priv:#7A3E9D; --priv-wash:#F2EAF6;
+    --bad:#B3261E; --ok:#146E72;
+    --grid:rgba(21,24,30,.045);
+    --shadow:0 1px 2px rgba(16,20,28,.06),0 8px 22px rgba(16,20,28,.07);
+  }
+  @media (prefers-color-scheme:dark){
+    :root:not([data-theme="light"]){
+      --bg:#14171B; --surface:#1B1F25; --surface-2:#23282F;
+      --ink:#E8EAEE; --ink-2:#B7BDC7; --muted:#8B929D;
+      --rule:#2E343C; --rule-2:#262B32;
+      --air:#E08A42;  --air-wash:#2A2018;
+      --core:#5CBCC0; --core-wash:#16292A;
+      --gatt:#7FA6E6; --gatt-wash:#1A2230;
+      --priv:#C08ADB; --priv-wash:#251C2B;
+      --bad:#E8837C; --ok:#5CBCC0;
+      --grid:rgba(232,234,238,.05);
+      --shadow:0 1px 2px rgba(0,0,0,.4),0 8px 22px rgba(0,0,0,.35);
+    }
+  }
+  :root[data-theme="dark"]{
+    --bg:#14171B; --surface:#1B1F25; --surface-2:#23282F;
+    --ink:#E8EAEE; --ink-2:#B7BDC7; --muted:#8B929D;
+    --rule:#2E343C; --rule-2:#262B32;
+    --air:#E08A42;  --air-wash:#2A2018;
+    --core:#5CBCC0; --core-wash:#16292A;
+    --gatt:#7FA6E6; --gatt-wash:#1A2230;
+    --priv:#C08ADB; --priv-wash:#251C2B;
+    --bad:#E8837C; --ok:#5CBCC0;
+    --grid:rgba(232,234,238,.05);
+    --shadow:0 1px 2px rgba(0,0,0,.4),0 8px 22px rgba(0,0,0,.35);
+  }
+
+  *{box-sizing:border-box}
+  body{
+    margin:0; background:var(--bg); color:var(--ink);
+    font:400 16px/1.62 "IBM Plex Sans",system-ui,-apple-system,"Helvetica Neue",sans-serif;
+    background-image:linear-gradient(var(--grid) 1px,transparent 1px),linear-gradient(90deg,var(--grid) 1px,transparent 1px);
+    background-size:28px 28px;
+    -webkit-font-smoothing:antialiased;
+  }
+  .wrap{max-width:1120px;margin:0 auto;padding:3.2rem 1.5rem 5rem}
+  code{font:500 .88em "IBM Plex Mono",ui-monospace,monospace;
+       background:var(--surface-2);padding:.1em .36em;border-radius:2px}
+  a{color:var(--gatt)}
+
+  header{margin-bottom:2.4rem}
+  .eyebrow{font:600 .68rem/1 "IBM Plex Mono",monospace;letter-spacing:.18em;
+           text-transform:uppercase;color:var(--muted);margin:0 0 .9rem}
+  h1{font:700 clamp(2rem,4.4vw,3rem)/1.08 "IBM Plex Sans",sans-serif;
+     letter-spacing:-.025em;margin:0 0 .9rem;text-wrap:balance}
+  h1 .repo{color:inherit;text-decoration:none;border-bottom:3px solid var(--core);
+           padding-bottom:.04em;transition:color .15s}
+  h1 .repo:hover,h1 .repo:focus-visible{color:var(--core)}
+  .repo-url{font:500 .8rem/1 "IBM Plex Mono",monospace;color:var(--muted);
+            margin:.85rem 0 1.2rem;word-break:break-all}
+  .repo-url a{color:inherit;text-decoration:none;border-bottom:1px solid var(--rule)}
+  .repo-url a:hover{color:var(--core);border-bottom-color:var(--core)}
+  .thesis{font-size:1.06rem;color:var(--ink-2);max-width:66ch;margin:0}
+  .thesis b{color:var(--ink);font-weight:600}
+
+  .legend{display:flex;flex-wrap:wrap;gap:1.4rem;margin-top:1.5rem;
+          font:500 .78rem/1 "IBM Plex Mono",monospace}
+  .legend span{display:flex;align-items:center;gap:.5rem;color:var(--muted)}
+  .sw{width:22px;height:3px;border-radius:2px;flex:none}
+
+  .spine{margin:2.2rem 0 3.4rem;overflow-x:auto}
+  .spine svg{display:block;width:100%;min-width:680px;height:auto;color:var(--ink)}
+
+  .branch{margin:0 0 3.2rem;position:relative}
+  .bhead{display:flex;align-items:baseline;gap:.9rem;flex-wrap:wrap;
+         padding-bottom:.7rem;margin-bottom:1.6rem;border-bottom:2px solid var(--tone,var(--rule))}
+  .bhead h2{font:700 1.28rem/1.2 "IBM Plex Sans",sans-serif;margin:0;letter-spacing:-.012em}
+  .bhead .role{font:500 .74rem/1 "IBM Plex Mono",monospace;letter-spacing:.08em;
+               text-transform:uppercase;color:var(--tone,var(--muted))}
+  .bhead .why{font-size:.9rem;color:var(--muted);margin-left:auto}
+
+  .leaves{display:flex;flex-direction:column;gap:1.15rem;padding-left:1.9rem;position:relative}
+  .leaves::before{content:"";position:absolute;left:.42rem;top:.9rem;bottom:1.6rem;
+                  width:2px;background:var(--tone,var(--rule));opacity:.32;border-radius:2px}
+  .leaf{position:relative;background:var(--surface);border:1px solid var(--rule);
+        border-radius:5px;padding:1.05rem 1.2rem 1.2rem;box-shadow:var(--shadow)}
+  .leaf::before{content:"";position:absolute;left:-1.48rem;top:1.5rem;width:1.05rem;height:2px;
+                background:var(--tone,var(--rule));opacity:.42}
+  .leaf::after{content:"";position:absolute;left:-1.9rem;top:1.15rem;width:11px;height:11px;
+               border-radius:50%;background:var(--bg);border:2.5px solid var(--tone,var(--rule))}
+
+  .lh{display:flex;align-items:baseline;gap:.7rem;flex-wrap:wrap;margin-bottom:.5rem}
+  .num{font:600 .68rem/1 "IBM Plex Mono",monospace;color:var(--tone,var(--muted));letter-spacing:.06em}
+  .lh h3{font:600 1.02rem/1.3 "IBM Plex Sans",sans-serif;margin:0;letter-spacing:-.008em}
+  .tag{font:500 .66rem/1 "IBM Plex Mono",monospace;letter-spacing:.07em;text-transform:uppercase;
+       color:var(--tone,var(--muted));background:var(--tone-wash,var(--surface-2));
+       border:1px solid var(--rule);padding:.28em .55em;border-radius:2px}
+  .claim{margin:0 0 .85rem;color:var(--ink-2);font-size:.945rem;max-width:72ch}
+  .claim b{color:var(--ink);font-weight:600}
+
+  figure{margin:.9rem 0 0}
+  figure svg{display:block;width:100%;height:auto;border:1px solid var(--rule);
+             border-radius:3px;background:var(--surface);padding:.7rem .5rem;color:var(--ink)}
+  figcaption{font:400 .78rem/1.5 "IBM Plex Mono",monospace;color:var(--muted);margin-top:.5rem}
+  .duo{display:grid;grid-template-columns:1fr 1fr;gap:.9rem}
+  @media(max-width:720px){.duo{grid-template-columns:1fr}}
+
+  pre{margin:.9rem 0 0;font:400 .78rem/1.62 "IBM Plex Mono",ui-monospace,monospace;
+      background:var(--surface-2);border:1px solid var(--rule-2);border-radius:3px;
+      padding:.85rem 1rem;overflow-x:auto;color:var(--ink-2)}
+  pre .p{color:var(--tone,var(--muted));font-weight:600}
+  pre .e{color:var(--bad);font-weight:600}
+  pre .g{color:var(--ok);font-weight:600}
+  pre .d{opacity:.55}
+
+  .facts{display:flex;flex-wrap:wrap;gap:.5rem;margin:.85rem 0 0;padding:0;list-style:none}
+  .facts li{font:500 .76rem/1 "IBM Plex Mono",monospace;color:var(--ink-2);
+            background:var(--surface-2);border:1px solid var(--rule-2);
+            padding:.4em .6em;border-radius:2px}
+  .facts li b{color:var(--tone,var(--ink));font-weight:600}
+
+  .span{border:2px solid var(--tone,var(--rule));border-radius:6px;background:var(--surface);
+        padding:1.6rem 1.6rem 1.8rem;box-shadow:var(--shadow);position:relative;margin:1rem 0 3.2rem}
+  .span .bhead{border-bottom-color:var(--rule)}
+  .big{font:700 clamp(2.4rem,6vw,3.6rem)/1 "IBM Plex Mono",monospace;letter-spacing:.06em;
+       color:var(--tone,var(--ink));margin:.4rem 0 .2rem}
+  .bigcap{font:500 .78rem/1.4 "IBM Plex Mono",monospace;color:var(--muted);margin:0 0 1rem}
+
+  .scope{margin:1.6rem 0 0;background:var(--surface);border:1px solid var(--rule);
+         border-left:3px solid var(--core);border-radius:4px;padding:.9rem 1.1rem 1rem;
+         box-shadow:var(--shadow);max-width:860px}
+  .scope p{margin:0 0 .6rem;font-size:.92rem;color:var(--ink-2)}
+  .scope p b{color:var(--ink)}
+  .scope table{border-collapse:collapse;width:100%;font:400 .8rem/1.45 "IBM Plex Mono",monospace}
+  .scope th,.scope td{text-align:left;padding:.35rem .6rem;border-top:1px solid var(--rule-2);vertical-align:top}
+  .scope th{font-weight:600;color:var(--muted)}
+  .scope td:nth-child(2){color:var(--ink)}
+  .scope td:nth-child(3){color:var(--muted)}
+  .scope .wrapx{overflow-x:auto}
+
+  footer{margin-top:3.6rem;padding-top:1.4rem;border-top:1px solid var(--rule);
+         color:var(--muted);font-size:.88rem}
+  footer ul{margin:.4rem 0 1rem;padding-left:1.2rem}
+  footer li{margin:.2rem 0}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header>
+  <p class="eyebrow">Embedded software · Bluetooth Low Energy</p>
+  <h1><a class="repo" href="https://github.com/Yihao23/ble-lab">ble-lab</a></h1>
+  <p class="repo-url"><a href="https://github.com/Yihao23/ble-lab">github.com/Yihao23/ble-lab</a></p>
+  <p class="thesis">An advertisement crosses <b>the air, a controller, the HCI boundary and a host stack</b> before any application reads it. Four projects, one at each hop &mdash; and every claim below comes with the capture or the log that backs it.</p>
+  <div class="legend">
+    <span><i class="sw" style="background:var(--air)"></i> 03 &mdash; reading HCI</span>
+    <span><i class="sw" style="background:var(--core)"></i> 01 &mdash; C core for the MCU</span>
+    <span><i class="sw" style="background:var(--gatt)"></i> 02 &mdash; GATT peripheral &amp; a phone</span>
+    <span><i class="sw" style="background:var(--priv)"></i> 04 &mdash; privacy audit</span>
+  </div>
+  <div class="scope">
+    <p><b>Which Bluetooth.</b> Everything on this page is <b>Bluetooth Low Energy (BLE)</b>, Bluetooth 4.0 and later &mdash; not Classic Bluetooth (BR/EDR), the one headphones stream audio over. The two share a name and the 2.4&nbsp;GHz band, and nothing else on air; a BLE-only device cannot talk to a Classic-only one.</p>
+    <div class="wrapx"><table>
+      <tr><th></th><th>BLE &mdash; this repository</th><th>Classic BR/EDR &mdash; not covered</th></tr>
+      <tr><td>channels</td><td>40 &times; 2 MHz: 3 for advertising (37, 38, 39), 37 for data</td><td>79 &times; 1 MHz</td></tr>
+      <tr><td>hopping</td><td>once per connection event; the phone&ndash;laptop link here: every 30 ms, about 33 hops/s</td><td>every 625 &micro;s slot, up to 1600 hops/s</td></tr>
+      <tr><td>made for</td><td>short exchanges, sleeping in between</td><td>continuous streams</td></tr>
+      <tr><td>pairing</td><td>LE Secure Connections: ECDH, f4, g2 &mdash; below</td><td>Secure Simple Pairing</td></tr>
+    </table></div>
+    <p style="margin:.6rem 0 0;font-size:.82rem;color:var(--muted)">Neither hop sequence is secret: both follow from parameters sent in the clear. Hopping avoids accidental interference; it does not stop a jammer, and BLE's three advertising channels are easy to jam together.</p>
+  </div>
+</header>
+
+<div class="spine">
+  <svg viewBox="0 0 1040 236" role="img" aria-label="The chain: devices on air, the BLE controller, the HCI boundary, the Linux host stack BlueZ, and applications. Project 03 captures at HCI, project 01 parses what crosses it, project 02 is a GATT server on BlueZ, project 04 analyses the capture.">
+    <defs>
+      <marker id="ar" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="currentColor" opacity=".55"/></marker>
+    </defs>
+    <g font-family="IBM Plex Sans,sans-serif" font-size="14" fill="currentColor">
+      <rect x="10" y="40" width="170" height="78" rx="5" fill="none" stroke="currentColor" stroke-opacity=".35" stroke-width="1.5"/>
+      <text x="95" y="68" text-anchor="middle" font-weight="600">On air</text>
+      <text x="95" y="88" text-anchor="middle" font-size="12" opacity=".7">phones · bulbs · trackers</text>
+      <text x="95" y="105" text-anchor="middle" font-size="12" opacity=".7">BLE adv. channels 37·38·39</text>
+
+      <rect x="240" y="40" width="190" height="78" rx="5" fill="none" stroke="currentColor" stroke-opacity=".35" stroke-width="1.5"/>
+      <text x="335" y="68" text-anchor="middle" font-weight="600">Controller</text>
+      <text x="335" y="88" text-anchor="middle" font-size="12" opacity=".7">Intel AX201 · LE link layer</text>
+      <text x="335" y="105" text-anchor="middle" font-size="12" opacity=".7">the part you buy</text>
+
+      <line x1="482" y1="18" x2="482" y2="140" stroke="var(--air)" stroke-width="3" stroke-dasharray="6 5"/>
+      <text x="482" y="12" text-anchor="middle" font-size="12" font-weight="600" fill="var(--air)">HCI</text>
+
+      <rect x="535" y="40" width="230" height="78" rx="5" fill="none" stroke="currentColor" stroke-opacity=".35" stroke-width="1.5"/>
+      <text x="650" y="68" text-anchor="middle" font-weight="600">Host · BlueZ 5.72</text>
+      <text x="650" y="88" text-anchor="middle" font-size="12" opacity=".7">kernel: HCI · SMP · mgmt</text>
+      <text x="650" y="105" text-anchor="middle" font-size="12" opacity=".7">bluetoothd: GATT · D-Bus</text>
+
+      <rect x="825" y="40" width="205" height="78" rx="5" fill="none" stroke="currentColor" stroke-opacity=".35" stroke-width="1.5"/>
+      <text x="927" y="68" text-anchor="middle" font-weight="600">Applications</text>
+      <text x="927" y="88" text-anchor="middle" font-size="12" opacity=".7">the part you write</text>
+      <text x="927" y="105" text-anchor="middle" font-size="12" opacity=".7">— on an MCU, all of the host</text>
+
+      <g stroke="currentColor" stroke-width="1.5" opacity=".7" marker-end="url(#ar)">
+        <line x1="182" y1="79" x2="236" y2="79"/>
+        <line x1="432" y1="79" x2="531" y2="79"/>
+        <line x1="767" y1="79" x2="821" y2="79"/>
+      </g>
+
+      <g font-family="IBM Plex Mono,monospace" font-size="12" font-weight="600">
+        <line x1="482" y1="140" x2="482" y2="150" stroke="var(--air)" stroke-width="1.5"/>
+        <text x="482" y="164" text-anchor="middle" fill="var(--air)">03 · tap: bluetooth-monitor</text>
+        <text x="482" y="181" text-anchor="middle" font-weight="400" font-size="11" opacity=".7">96 513 packets in 40 min, 0 dropped</text>
+
+        <line x1="260" y1="140" x2="260" y2="166" stroke="var(--core)" stroke-width="1.5"/>
+        <text x="250" y="182" text-anchor="middle" fill="var(--core)">01 · parses what crosses HCI</text>
+        <text x="250" y="199" text-anchor="middle" font-weight="400" font-size="11" opacity=".7">C99, no heap, no libc · 2.4 KB</text>
+
+        <line x1="720" y1="140" x2="720" y2="182" stroke="var(--gatt)" stroke-width="1.5"/>
+        <text x="726" y="198" text-anchor="middle" fill="var(--gatt)">02 · GATT server on D-Bus</text>
+        <text x="726" y="215" text-anchor="middle" font-weight="400" font-size="11" opacity=".7">a real phone reads, writes, pairs</text>
+
+        <path d="M482 190 L482 228 L930 228 L930 140" fill="none" stroke="var(--priv)" stroke-width="1.5" stroke-dasharray="3 3"/>
+        <text x="935" y="160" fill="var(--priv)">04 · audits</text>
+        <text x="935" y="176" fill="var(--priv)">the capture</text>
+      </g>
+    </g>
+  </svg>
+</div>
+
+
+<section class="branch" style="--tone:var(--air);--tone-wash:var(--air-wash)">
+  <div class="bhead">
+    <span class="role">03 · the boundary</span>
+    <h2>Reading HCI</h2>
+    <span class="why">where field bugs are decided: the log both sides accept</span>
+  </div>
+  <div class="leaves">
+
+    <div class="leaf">
+      <div class="lh"><span class="num">03.1</span><h3>Forty minutes, layer by layer</h3><span class="tag">dumpcap · python</span></div>
+      <p class="claim"><code>bluetooth-monitor</code> is not a radio: it is the kernel copying everything that crosses HCI, <b>and</b> every message between the kernel and bluetoothd, into one stream. The difference between the two layers is the interesting part: <b>bluetoothd never sees a scan response alone</b> &mdash; the kernel merges it into the advertisement's Device Found.</p>
+      <pre><span class="d">$ python3 layers.py captures/scan-40min.pcapng</span>
+<span class="p">2. HCI commands, host -&gt; controller</span>
+   0x2042 LE Set Extended Scan Enable                448
+   0x2005 LE Set Random Address                      224
+   0x2041 LE Set Extended Scan Parameters            224
+   scan parameters x224: own address type 1, filter policy 0
+      1M: active, interval 11.25 ms, window 11.25 ms       <span class="d"># window = interval: listening 100 % of the time</span>
+   scanner address set 224 times, <span class="g">224 distinct</span>, kinds {'nrpa': 224}; every 10.752 s (min 10.552, max 10.834)
+<span class="p">3. HCI events, controller -&gt; host</span>
+   advertising reports 59437: 34466 advertisements, 24971 scan responses
+<span class="p">4. Management events, kernel -&gt; bluetoothd</span>
+   0x0012 Device Found          <span class="g">34380</span>          <span class="d"># tracks the 34 466 advertisements, not the 59 437 reports</span></pre>
+      <ul class="facts"><li>scanner rotates its own address every <b>10.75 s</b></li><li>HCI never says which BLE advertising channel, <b>37/38/39</b>, a packet came on</li></ul>
+    </div>
+
+    <div class="leaf">
+      <div class="lh"><span class="num">03.2</span><h3>RSSI is not distance, even when nobody lies</h3><span class="tag">lecture 2–4</span></div>
+      <p class="claim">Two smart bulbs that never moved, heard for 40 minutes. A single packet's RSSI spans <b>8 dB</b> between its 5th and 95th percentile &mdash; under free-space path loss, <b>a factor of 2.5 in distance</b>. That is the honest case; an attacker simply transmits louder.</p>
+      <figure>
+        <svg viewBox="0 0 760 130" role="img" aria-label="RSSI ranges of two stationary bulbs: bulb A from minus 65 to minus 57 dBm with median minus 60, bulb B from minus 85 to minus 77 with median minus 81.">
+          <g font-family="IBM Plex Mono,monospace" font-size="12" fill="currentColor">
+            <line x1="60" y1="100" x2="700" y2="100" stroke="currentColor" opacity=".35"/>
+            <g opacity=".7" text-anchor="middle">
+              <text x="60" y="120">-95</text><text x="220" y="120">-85</text><text x="380" y="120">-75</text><text x="540" y="120">-65</text><text x="700" y="120">-55 dBm</text>
+            </g>
+            <text x="8" y="38">bulb A</text>
+            <rect x="540" y="26" width="128" height="18" rx="2" fill="var(--air)" opacity=".35"/>
+            <line x1="620" y1="22" x2="620" y2="48" stroke="var(--air)" stroke-width="3"/>
+            <text x="604" y="18" text-anchor="middle" font-size="11">p5 −65 · median −60 · p95 −57</text>
+            <text x="8" y="80">bulb B</text>
+            <rect x="220" y="68" width="128" height="18" rx="2" fill="var(--air)" opacity=".35"/>
+            <line x1="284" y1="64" x2="284" y2="90" stroke="var(--air)" stroke-width="3"/>
+            <text x="284" y="60" text-anchor="middle" font-size="11">p5 −85 · median −81 · p95 −77</text>
+          </g>
+        </svg>
+        <figcaption>18 727 and 9 250 reports; std dev 2.7 and 2.4 dB. 10<sup>8/20</sup> ≈ 2.5.</figcaption>
+      </figure>
+    </div>
+
+  </div>
+</section>
+
+
+<section class="branch" style="--tone:var(--core);--tone-wash:var(--core-wash)">
+  <div class="bhead">
+    <span class="role">01 · what would run on the MCU</span>
+    <h2>BLE core in C</h2>
+    <span class="why">AES, RPA, AD and HCI parsing, AES-CMAC, g2 — C99, no heap, no libc</span>
+  </div>
+  <div class="leaves">
+
+    <div class="leaf">
+      <div class="lh"><span class="num">01.1</span><h3>Proven three ways that share no assumption</h3><span class="tag">c99 · asan · tshark</span></div>
+      <p class="claim">Spec and RFC test vectors; <b>200 000 fuzz inputs</b> in exactly-sized buffers under ASan + UBSan, so a one-byte over-read aborts the run; and a differential run against Wireshark over <b>every report in the 40-minute capture</b>.</p>
+      <pre><span class="d">$ ./build-asan/ble_tests</span>
+  200000 inputs, 215848 AD structures, 43915 reports parsed, all in bounds
+<span class="g">294 checks, 0 failed</span>
+<span class="d">$ python3 tools/diff_vs_tshark.py ../03-hci-capture/captures/scan-40min.pcapng</span>
+59437 reports compared on 6 fields each (356622 values)
+<span class="g">mismatches: 0</span></pre>
+    </div>
+
+    <div class="leaf">
+      <div class="lh"><span class="num">01.2</span><h3>"No libc" was not true &mdash; until it was checked</h3><span class="tag">arm-none-eabi-gcc</span></div>
+      <p class="claim">The build only compiled, never linked, so nothing noticed that on <b>Cortex-M0+</b> GCC had turned <code>uint8_t block[16] = {0}</code> into a call to <code>memset</code> &mdash; even with <code>-ffreestanding -fno-builtin</code>. The size script now fails on any symbol the library does not define. Red first, then fixed with stores through a volatile pointer.</p>
+      <pre><span class="d">$ ./tools/size-cortex-m.sh          # before the fix</span>
+== cortex-m0plus (-Os, thumb) ==
+  <span class="e">MISSING: memset  &lt;- ble_rpa.o</span>
+<span class="d">$ ./tools/size-cortex-m.sh          # after</span>
+== cortex-m0plus (-Os, thumb) ==
+   2423       0       0    2423     977 (TOTALS)
+  compiler runtime (libgcc): __aeabi_uidivmod  &lt;- ble_sc.o   <span class="d"># M0+ has no divide instruction</span></pre>
+    </div>
+
+    <div class="leaf">
+      <div class="lh"><span class="num">01.3</span><h3>Stack along the call graph GCC emitted, not the source</h3><span class="tag">-fcallgraph-info</span></div>
+      <p class="claim">A <code>.su</code> file gives each function's own frame; a caller stacks every frame on its path, and inlining hides functions the source calls. <code>stack-depth.py</code> adds them along the graph after inlining.</p>
+      <pre><span class="d">$ ./tools/stack-depth.py</span>
+== cortex-m0plus: worst-case stack of each public function ==
+      <span class="p">496</span>  ble_sc_g2 (112) -&gt; ble_aes_cmac (104) -&gt; ble_cmac_subkeys (32) -&gt; ble_aes128_encrypt (240) -&gt; add_round_key (8)
+      352  ble_rpa_resolve_any (32) -&gt; ble_rpa_resolve (24) -&gt; ble_ah (48) -&gt; ble_aes128_encrypt (240) -&gt; add_round_key (8)
+       72  ble_ad_name (56) -&gt; ble_ad_next (16)</pre>
+    </div>
+
+  </div>
+</section>
+
+
+<section class="branch" style="--tone:var(--gatt);--tone-wash:var(--gatt-wash)">
+  <div class="bhead">
+    <span class="role">02 · the part a phone touches</span>
+    <h2>GATT peripheral on BlueZ</h2>
+    <span class="why">battery and temperature, validated writes, an authenticated write</span>
+  </div>
+  <div class="leaves">
+
+    <div class="leaf">
+      <div class="lh"><span class="num">02.1</span><h3>All tests passed; the first phone could read nothing</h3><span class="tag">android · nrf connect</span></div>
+      <p class="claim">Every read came back ATT <code>0x0E</code> Unlikely Error. A helper method named <code>_name</code> was silently replaced: <code>dbus.service.Object.__init__</code> sets <code>self._name</code> to the bus name, <code>None</code>. The 24 tests covered the model; <b>nothing ran the D-Bus layer until a real client did.</b> Renamed, and a test now checks every D-Bus class for the clash.</p>
+      <pre><span class="d">$ tshark -r captures/phone-*.pcapng -Y btatt</span>
+Rcvd Read Request, Handle: 0x0017 (Battery: Battery Level)
+<span class="e">Sent Error Response - Unlikely Error, Handle: 0x0017</span>
+<span class="d">program log:</span>  <span class="e">TypeError: 'NoneType' object is not callable</span>
+<span class="d">after the fix:</span>  read battery -&gt; 5f   read temp -&gt; 9411   <span class="g">97 notifications, 0 errors</span></pre>
+    </div>
+
+    <div class="leaf">
+      <div class="lh"><span class="num">02.2</span><h3>The device chose <code>0xFF</code>; the phone got <code>0x80</code></h3><span class="tag">bluez source</span></div>
+      <p class="claim">A 50 ms sample interval is out of range, and the Core Specification Supplement names <code>0xFF</code> for exactly that. BlueZ 5.72's <code>dbus_error_to_att_ecode()</code> maps <code>org.bluez.Error.Failed</code> to <code>0x80</code> and accepts only <code>0x80</code>&ndash;<code>0x9F</code>: <b>a D-Bus application cannot send <code>0xE0</code>&ndash;<code>0xFF</code> at all.</b></p>
+      <pre><span class="d">program log:</span>  write interval &lt;- 3200   REFUSED ATT error <span class="p">0xFF</span>: 50 ms outside 100..10000
+<span class="d">on air:</span>       Rcvd Write Request, Handle: 0x002c, Value: 3200
+              Sent Error Response - Application Error <span class="e">0x80</span></pre>
+    </div>
+
+  </div>
+</section>
+
+
+<section class="span" style="--tone:var(--gatt);--tone-wash:var(--gatt-wash)">
+  <div class="bhead">
+    <span class="role">01 + 02 · spans both</span>
+    <h2>The six digits on both screens</h2>
+    <span class="why">numeric comparison, LE Secure Connections</span>
+  </div>
+  <p class="big">985572</p>
+  <p class="bigcap">on the phone · in bluetoothctl · and computed by project 01's <code>ble_sc_g2</code> from the capture</p>
+  <p class="claim" style="max-width:80ch">Writing the Identify characteristic before pairing came back <code>0x05</code> Insufficient Authentication, and the phone started pairing on its own. Both sides declared KeyboardDisplay, so numeric comparison: each side computes <code>g2(PKax, PKbx, Na, Nb)</code> and shows the last six digits; a man in the middle holds a different key pair with each side, and the numbers differ. The keys and nonces travel in the clear, so they are in the capture. <b>Before g2 runs, the script recomputes the commitment the laptop sent &mdash; a misread byte would fail there instead of producing a plausible wrong number.</b></p>
+  <figure>
+    <svg viewBox="0 0 900 300" role="img" aria-label="Pairing sequence between the phone (initiator) and the laptop (responder): pairing request and response, public keys exchanged, the laptop's commitment Cb, then the phone's nonce Na and the laptop's nonce Nb, then both compute g2 and show 985572, the user confirms after 13 seconds, DHKey checks, encryption, and the phone distributes its IRK.">
+      <defs><marker id="ar2" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="currentColor" opacity=".7"/></marker></defs>
+      <g font-family="IBM Plex Mono,monospace" font-size="12" fill="currentColor">
+        <text x="150" y="20" text-anchor="middle" font-weight="600">phone · initiator</text>
+        <text x="750" y="20" text-anchor="middle" font-weight="600">laptop · responder</text>
+        <line x1="150" y1="30" x2="150" y2="292" stroke="currentColor" opacity=".3"/>
+        <line x1="750" y1="30" x2="750" y2="292" stroke="currentColor" opacity=".3"/>
+        <g stroke="currentColor" stroke-width="1.3" opacity=".75">
+          <line x1="152" y1="46"  x2="746" y2="46"  marker-end="url(#ar2)"/>
+          <line x1="748" y1="66"  x2="154" y2="66"  marker-end="url(#ar2)"/>
+          <line x1="152" y1="90"  x2="746" y2="90"  marker-end="url(#ar2)"/>
+          <line x1="748" y1="110" x2="154" y2="110" marker-end="url(#ar2)"/>
+          <line x1="748" y1="132" x2="154" y2="132" marker-end="url(#ar2)" stroke="var(--gatt)" stroke-width="2"/>
+          <line x1="152" y1="154" x2="746" y2="154" marker-end="url(#ar2)"/>
+          <line x1="748" y1="174" x2="154" y2="174" marker-end="url(#ar2)"/>
+          <line x1="152" y1="248" x2="746" y2="248" marker-end="url(#ar2)"/>
+          <line x1="152" y1="272" x2="746" y2="272" marker-end="url(#ar2)" stroke="var(--priv)" stroke-width="2"/>
+        </g>
+        <text x="450" y="41"  text-anchor="middle">Pairing Request · Bonding, MITM, SC</text>
+        <text x="450" y="61"  text-anchor="middle">Pairing Response · KeyboardDisplay</text>
+        <text x="450" y="85"  text-anchor="middle">Public Key PKa</text>
+        <text x="450" y="105" text-anchor="middle">Public Key PKb</text>
+        <text x="450" y="127" text-anchor="middle" fill="var(--gatt)" font-weight="600">Confirm Cb = f4(PKbx, PKax, Nb, 0) · Nb sealed</text>
+        <text x="450" y="149" text-anchor="middle">Random Na</text>
+        <text x="450" y="169" text-anchor="middle">Random Nb · phone checks Cb</text>
+        <rect x="40" y="186" width="220" height="40" rx="4" fill="var(--gatt-wash)" stroke="var(--gatt)"/>
+        <rect x="640" y="186" width="220" height="40" rx="4" fill="var(--gatt-wash)" stroke="var(--gatt)"/>
+        <text x="150" y="211" text-anchor="middle" font-weight="600" fill="var(--gatt)">g2 → 985572</text>
+        <text x="750" y="211" text-anchor="middle" font-weight="600" fill="var(--gatt)">g2 → 985572</text>
+        <text x="450" y="211" text-anchor="middle" opacity=".7">a person compares · 13 s</text>
+        <text x="450" y="243" text-anchor="middle">DHKey Check ⇄ · encryption on</text>
+        <text x="450" y="267" text-anchor="middle" fill="var(--priv)">Identity Information: the phone's IRK</text>
+      </g>
+    </svg>
+  </figure>
+  <pre><span class="d">bluetoothctl:</span>  [agent] Confirm passkey <span class="p">985572</span> (yes/no): yes
+<span class="d">$ python3 tools/pairing_from_capture.py captures/pairing-*.pcapng</span>
+pairing attempt 1: initiator received by this host; IO KeyboardDisplay / KeyboardDisplay; NOT completed
+  Cb = f4(PKbx, PKax, Nb, 0) matches the Pairing Confirm on air: yes
+  ble_sc_g2: g2 0xeae5fdc4  compare value 941252     <span class="d"># never confirmed: new nonces, new number</span>
+pairing attempt 2: initiator received by this host; IO KeyboardDisplay / KeyboardDisplay; completed (both DHKey checks)
+  Cb = f4(PKbx, PKax, Nb, 0) matches the Pairing Confirm on air: <span class="g">yes</span>
+  ble_sc_g2: g2 0xdbf0b624  compare value <span class="g">985572</span></pre>
+  <ul class="facts"><li>AES-CMAC from <b>RFC 4493</b>, every official vector</li><li>g2 from <b>Core Vol 3 Part H, App. D.5</b>: 938554</li><li>then <b>a real phone</b>: 985572</li></ul>
+</section>
+
+
+<section class="branch" style="--tone:var(--priv);--tone-wash:var(--priv-wash)">
+  <div class="bhead">
+    <span class="role">04 · lecture 10, on air</span>
+    <h2>Advertising privacy audit</h2>
+    <span class="why">rotation is supposed to make a device untraceable — does it?</span>
+  </div>
+  <div class="leaves">
+
+    <div class="leaf">
+      <div class="lh"><span class="num">04.1</span><h3>The address rotated; the payload did not</h3><span class="tag">python · stdlib</span></div>
+      <p class="claim">A device sending Google service data changed its address every few minutes, but its 20-plus-byte payload only every 10&ndash;20. <b>Four of its six address changes carried the payload over byte for byte</b>, 0.1&ndash;3.1 s apart &mdash; those links are certain. At the other two, address and payload changed together; those are linked only by timing and signal strength, and marked as probable. With them, <b>seven addresses make one 40-minute trace.</b></p>
+      <figure>
+        <svg viewBox="0 0 900 150" role="img" aria-label="Timeline over 40 minutes. Address lane: seven addresses changing at 3.3, 10.8, 18.4, 19.9, 28.5 and 32.6 minutes. Payload lane: three payloads changing at 19.9 and 32.6 minutes. Most address changes fall inside one payload, so the payload links them.">
+          <g font-family="IBM Plex Mono,monospace" font-size="12" fill="currentColor">
+            <text x="0" y="46">address</text>
+            <text x="0" y="96">payload</text>
+            <g stroke="var(--bg)" stroke-width="2">
+              <rect x="90" y="30" width="62.7" height="26" fill="var(--priv)" opacity=".55"/>
+              <rect x="152.7" y="30" width="142.5" height="26" fill="var(--priv)" opacity=".8"/>
+              <rect x="295.2" y="30" width="144.4" height="26" fill="var(--priv)" opacity=".55"/>
+              <rect x="439.6" y="30" width="28.5" height="26" fill="var(--priv)" opacity=".8"/>
+              <rect x="468.1" y="30" width="163.4" height="26" fill="var(--priv)" opacity=".55"/>
+              <rect x="631.5" y="30" width="77.9" height="26" fill="var(--priv)" opacity=".8"/>
+              <rect x="709.4" y="30" width="140.6" height="26" fill="var(--priv)" opacity=".55"/>
+              <rect x="90" y="80" width="378.1" height="26" fill="var(--air)" opacity=".55"/>
+            <rect x="468.1" y="80" width="241.3" height="26" fill="var(--air)" opacity=".8"/>
+            <rect x="709.4" y="80" width="140.6" height="26" fill="var(--air)" opacity=".55"/>
+            </g>
+            <text x="279" y="98" text-anchor="middle" font-weight="600">payload A — same bytes, 4 addresses</text>
+            <text x="589" y="98" text-anchor="middle" font-weight="600">payload B</text>
+            <text x="780" y="98" text-anchor="middle" font-weight="600">C</text>
+            <g opacity=".7" text-anchor="middle">
+              <text x="90" y="130">0</text><text x="280" y="130">10</text><text x="470" y="130">20</text><text x="660" y="130">30</text><text x="850" y="130">40 min</text>
+            </g>
+          </g>
+        </svg>
+        <figcaption>Addresses 0–3.3–10.8–18.4–19.9–28.5–32.6–40 min; payloads 0–19.9–32.6–40. Same device: a legacy and an extended set at once, the 92-byte payload starting with the 27-byte one.</figcaption>
+      </figure>
+      <pre><span class="d">$ python3 -m bleprivacy captures/scan-40min.pcapng      # addresses replaced by keyed hashes</span>
+ 40.0 min  nrpa#fb4c64 <span class="p">-=-&gt;</span> nrpa#58871a <span class="p">-=-&gt;</span> nrpa#80bb2c <span class="p">-=-&gt;</span> nrpa#805c4d -?-&gt; nrpa#c6e5ab <span class="p">-=-&gt;</span> nrpa#981485 -?-&gt; nrpa#bbf5be
+<span class="e">P004  error</span>    nrpa#447079   rotation defeated: new address appeared 0.2 s later carrying identical service_data bytes
+<span class="d">-=-&gt; identical payload bytes on both sides;  -?-&gt; same shape, same RSSI, seconds apart</span></pre>
+    </div>
+
+    <div class="leaf">
+      <div class="lh"><span class="num">04.2</span><h3>Three ways to track a light bulb</h3><span class="tag">spec violation</span></div>
+      <p class="claim">A public address that never changes; a name ending in two bytes of that address; and LE <b>Limited</b> Discoverable held for 40 minutes where the spec allows 180 seconds &mdash; from a company ID not in the Bluetooth SIG's assigned numbers.</p>
+      <pre><span class="p">P001</span>  warning  public#97c4e4   public address, heard for 40.0 of 40.0 min: trackable wherever it goes, it never changes
+<span class="p">P003</span>  warning  public#97c4e4   advertised name (18 chars) contains the last two bytes of the device's own address
+<span class="e">S001</span>  warning  public#97c4e4   advertised LE Limited Discoverable for 40.0 min; the spec caps it at 180 s (TGAP(lim_adv_timeout))</pre>
+    </div>
+
+    <div class="leaf">
+      <div class="lh"><span class="num">04.3</span><h3>A false positive, found on real data</h3><span class="tag">regression test</span></div>
+      <p class="claim">The first version linked three Apple devices because they shared a 17-byte payload. It was <code>01 00 00 … 80 00 00 00 00</code> &mdash; a bitmap every device in the same state sends, not a fingerprint. A payload now counts as an identifier only with 6+ bytes and 4+ distinct values; the test fails without the rule.</p>
+    </div>
+
+  </div>
+</section>
+
+
+<footer>
+  <p><b>Not done yet</b>, and said so in the READMEs:</p>
+  <ul>
+    <li>01 on a real Cortex-M board &mdash; sizes and stack come from the cross-compiler.</li>
+    <li>Reconnecting on the stored LTK; the 0.5 s notification limit on air; <code>Privacy = device</code> for the laptop's own address.</li>
+    <li><code>f4</code> in C &mdash; it is computed above in Python, to check the capture.</li>
+  </ul>
+  <p>The cryptography here is for understanding: a product should use the chip's hardware AES and a qualified stack. Captures stay out of the repository &mdash; they hold other people's addresses, and the pairing's keys. Built alongside <i>Foundations of Wireless Security</i>, Saarland University, summer 2026.</p>
+  <p><a href="https://github.com/Yihao23/ble-lab">github.com/Yihao23/ble-lab</a></p>
+</footer>
+
+</div>
+</body>
+</html>
