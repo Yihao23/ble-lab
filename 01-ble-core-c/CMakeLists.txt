@@ -17,7 +17,9 @@ add_library(ble_core STATIC
     src/ble_ad.c
     src/ble_hci.c
     src/ble_cmac.c
-    src/ble_sc.c)
+    src/ble_sc.c
+    src/ble_l2cap.c
+    src/ble_att.c)
 target_include_directories(ble_core PUBLIC include PRIVATE src)
 target_compile_options(ble_core PRIVATE ${BLE_WARNINGS})
 
@@ -32,6 +34,7 @@ add_executable(ble_tests
     tests/test_hci_status.c
     tests/test_hci_multi.c
     tests/test_cmac.c
+    tests/test_l2cap_att.c
     tests/test_fuzz.c)
 target_link_libraries(ble_tests PRIVATE ble_core)
 target_compile_options(ble_tests PRIVATE -Wall -Wextra -Werror)
@@ -40,6 +43,10 @@ target_compile_options(ble_tests PRIVATE -Wall -Wextra -Werror)
 add_executable(bleparse tools/bleparse.c)
 target_link_libraries(bleparse PRIVATE ble_core)
 target_compile_options(bleparse PRIVATE ${BLE_WARNINGS})
+
+add_executable(aclparse tools/aclparse.c)
+target_link_libraries(aclparse PRIVATE ble_core)
+target_compile_options(aclparse PRIVATE ${BLE_WARNINGS})
 
 add_executable(bleg2 tools/bleg2.c)
 target_link_libraries(bleg2 PRIVATE ble_core)
@@ -55,7 +62,9 @@ add_test(NAME bleg2_spec_vector COMMAND bleg2
 set_tests_properties(bleg2_spec_vector PROPERTIES PASS_REGULAR_EXPRESSION "g2 0x2f9ed5ba  compare value 938554")
 
 if(BLE_SANITIZE)
-    foreach(t ble_core ble_tests bleparse)
+    # Every target that links ble_core must be here: an executable linking the
+    # instrumented library without the sanitizer runtime fails to link.
+    foreach(t ble_core ble_tests bleparse bleg2 aclparse)
         target_compile_options(${t} PRIVATE -fsanitize=address,undefined
                                -fno-sanitize-recover=all -fno-omit-frame-pointer -g)
         target_link_options(${t} PRIVATE -fsanitize=address,undefined)
@@ -64,7 +73,7 @@ endif()
 
 # Prove the library needs no libc: compile every source -ffreestanding.
 add_library(ble_core_freestanding OBJECT
-    src/ble_aes.c src/ble_rpa.c src/ble_ad.c src/ble_hci.c src/ble_cmac.c src/ble_sc.c)
+    src/ble_aes.c src/ble_rpa.c src/ble_ad.c src/ble_hci.c src/ble_cmac.c src/ble_sc.c src/ble_l2cap.c src/ble_att.c)
 target_include_directories(ble_core_freestanding PRIVATE include src)
 target_compile_options(ble_core_freestanding PRIVATE ${BLE_WARNINGS} -ffreestanding -fno-builtin)
 

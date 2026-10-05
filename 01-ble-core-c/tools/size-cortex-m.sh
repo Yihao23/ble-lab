@@ -11,10 +11,12 @@
 # every symbol the objects leave undefined must be defined by another object
 # of the library; anything else fails the run. (It once caught a memset GCC
 # generated for `uint8_t block[16] = {0}` on Cortex-M0+ but not on M4.)
-# The one exception is the ARM EABI compiler runtime, __aeabi_*: Cortex-M0+
-# has no divide instruction, so `x % 1000000u` becomes a call to
-# __aeabi_uidivmod in libgcc, which ships with the compiler rather than libc.
-# Those are listed with the object that needs them, and allowed.
+# The exception is the compiler runtime in libgcc, which ships with the
+# compiler rather than libc: the ARM EABI helpers __aeabi_* (Cortex-M0+ has
+# no divide instruction, so `x % 1000000u` calls __aeabi_uidivmod) and the
+# Thumb-1 switch-table helpers __gnu_thumb1_case_* (a dense switch on M0+,
+# which lacks Thumb-2's table-branch instruction). Those are listed with the
+# object that needs them, and allowed.
 #
 # The per-function stack usage (.su) and the call graph the compiler
 # actually emitted (.ci, from -fcallgraph-info=su) are kept in
@@ -60,7 +62,7 @@ for cpu in cortex-m0plus cortex-m4; do
   while read -r sym objs; do
     [ -n "$sym" ] || continue
     case "$sym" in
-      __aeabi_*) echo "  compiler runtime (libgcc): $sym  <- $objs" ;;
+      __aeabi_*|__gnu_thumb1_case_*) echo "  compiler runtime (libgcc): $sym  <- $objs" ;;
       *)         echo "  MISSING: $sym  <- $objs"; fail=1 ;;
     esac
   done <<< "$outside"

@@ -68,6 +68,9 @@ void suite_hci_status(void);   /**< Task 2: extended report data status. See tes
 void suite_hci_multi(void);    /**< Task 3: several legacy reports in one event. See test_hci_multi.c. */
 void suite_cmac(void);         /**< Task 5: AES-CMAC, RFC 4493 vectors. See test_cmac.c. */
 void suite_sc(void);           /**< Task 5: g2, Core Appendix D.5. See test_cmac.c. */
+void suite_l2cap(void);        /**< Task 7a: HCI ACL and L2CAP. See test_l2cap_att.c. */
+void suite_att(void);          /**< Task 7b: ATT PDUs. See test_l2cap_att.c. */
+void suite_acl_fuzz(void);     /**< Task 7: random ACL packets under the sanitizers. See test_l2cap_att.c. */
 void suite_fuzz(void);   /**< Random input, half shaped like LE Meta events, under the sanitizers. See test_fuzz.c. */
 
 #endif

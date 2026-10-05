@@ -224,7 +224,7 @@
 
         <line x1="260" y1="140" x2="260" y2="166" stroke="var(--core)" stroke-width="1.5"/>
         <text x="250" y="182" text-anchor="middle" fill="var(--core)">01 · parses what crosses HCI</text>
-        <text x="250" y="199" text-anchor="middle" font-weight="400" font-size="11" opacity=".7">C99, no heap, no libc · 2.4 KB</text>
+        <text x="250" y="199" text-anchor="middle" font-weight="400" font-size="11" opacity=".7">C99, no heap, no libc · 3.5 KB</text>
 
         <line x1="720" y1="140" x2="720" y2="182" stroke="var(--gatt)" stroke-width="1.5"/>
         <text x="726" y="198" text-anchor="middle" fill="var(--gatt)">02 · GATT server on D-Bus</text>
@@ -297,18 +297,21 @@
   <div class="bhead">
     <span class="role">01 · what would run on the MCU</span>
     <h2>BLE core in C</h2>
-    <span class="why">AES, RPA, AD and HCI parsing, AES-CMAC, g2 — C99, no heap, no libc</span>
+    <span class="why">AES, RPA, AD, HCI and ATT parsing, AES-CMAC, g2 — C99, no heap, no libc</span>
   </div>
   <div class="leaves">
 
     <div class="leaf">
       <div class="lh"><span class="num">01.1</span><h3>Proven three ways that share no assumption</h3><span class="tag">c99 · asan · tshark</span></div>
-      <p class="claim">Spec and RFC test vectors; <b>200 000 fuzz inputs</b> in exactly-sized buffers under ASan + UBSan, so a one-byte over-read aborts the run; and a differential run against Wireshark over <b>every report in the 40-minute capture</b>.</p>
+      <p class="claim">Spec and RFC test vectors; <b>300 000 fuzz inputs</b> in exactly-sized buffers under ASan + UBSan, so a one-byte over-read aborts the run; and a differential run against Wireshark over <b>every report in the 40-minute capture</b> and <b>every ACL packet of three phone sessions</b>, down to ATT.</p>
       <pre><span class="d">$ ./build-asan/ble_tests</span>
   200000 inputs, 215848 AD structures, 43915 reports parsed, all in bounds
-<span class="g">294 checks, 0 failed</span>
+<span class="g">620 checks, 0 failed</span>
 <span class="d">$ python3 tools/diff_vs_tshark.py ../03-hci-capture/captures/scan-40min.pcapng</span>
 59437 reports compared on 6 fields each (356622 values)
+<span class="g">mismatches: 0</span>
+<span class="d">$ python3 tools/diff_acl_vs_tshark.py ../02-gatt-peripheral/captures/phone-fixed-*.pcapng</span>
+307 ACL packets compared, 3349 values
 <span class="g">mismatches: 0</span></pre>
     </div>
 
