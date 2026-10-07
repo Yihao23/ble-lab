@@ -320,6 +320,93 @@
       </figure>
     </div>
 
+    <div class="leaf">
+      <div class="lh"><span class="num">03.3</span><h3>Pair once, then 80 ms</h3><span class="tag">timeline.py · report 02</span></div>
+      <p class="claim">The same phone and laptop, a week apart. The first pairing attempt <b>died of the 30-second SMP timeout</b> &mdash; to the user, an ordinary disconnection. The second was confirmed and the link encrypted at 38 s, most of it waiting for a person. A week later the bonded phone reconnected and the link was <b>encrypted 80 ms after it came up, with no pairing at all</b>: the controller asked its host for the stored Long Term Key and got it. That key crosses HCI in clear &mdash; the timeline prints that it was given, never what.</p>
+      <figure>
+        <div class="packet">
+          <svg viewBox="0 0 860 360" role="img" aria-label="Three timelines from the moment the link came up, on one scale of 0 to 70 seconds. Pairing try 1: GATT discovery and idle until 38.4 s, then SMP with the digits shown but not confirmed, dropped at 68.6 s, 30.06 s after the digits: the SMP timeout. Pairing try 2: Identify write refused with 0x05, SMP from 21.2 s, 985572 confirmed, encrypted at 38.1 s. Reconnect a week later: encrypted at 0.08 s with no SMP pairing. Zoomed: link up at 0 ms, Security Request from the laptop at 5 ms, LTK Request answered with the stored key at 28 ms, Encryption Change at 80 ms.">
+            <g font-family="IBM Plex Mono,monospace" fill="currentColor">
+            <line x1="170" y1="196" x2="835" y2="196" stroke="currentColor" stroke-opacity=".4"/>
+            <line x1="170" y1="193" x2="170" y2="199" stroke="currentColor" stroke-width="1"/>
+            <text x="170" y="212" text-anchor="middle" font-size="10.5" opacity=".7">0</text>
+            <line x1="265" y1="193" x2="265" y2="199" stroke="currentColor" stroke-width="1"/>
+            <text x="265" y="212" text-anchor="middle" font-size="10.5" opacity=".7">10</text>
+            <line x1="360" y1="193" x2="360" y2="199" stroke="currentColor" stroke-width="1"/>
+            <text x="360" y="212" text-anchor="middle" font-size="10.5" opacity=".7">20</text>
+            <line x1="455" y1="193" x2="455" y2="199" stroke="currentColor" stroke-width="1"/>
+            <text x="455" y="212" text-anchor="middle" font-size="10.5" opacity=".7">30</text>
+            <line x1="550" y1="193" x2="550" y2="199" stroke="currentColor" stroke-width="1"/>
+            <text x="550" y="212" text-anchor="middle" font-size="10.5" opacity=".7">40</text>
+            <line x1="645" y1="193" x2="645" y2="199" stroke="currentColor" stroke-width="1"/>
+            <text x="645" y="212" text-anchor="middle" font-size="10.5" opacity=".7">50</text>
+            <line x1="740" y1="193" x2="740" y2="199" stroke="currentColor" stroke-width="1"/>
+            <text x="740" y="212" text-anchor="middle" font-size="10.5" opacity=".7">60</text>
+            <line x1="835" y1="193" x2="835" y2="199" stroke="currentColor" stroke-width="1"/>
+            <text x="835" y="212" text-anchor="middle" font-size="10.5" opacity=".7">70 s</text>
+            <text x="170" y="24" text-anchor="start" font-size="11" font-weight="600">seconds after the link came up — same scale on every row</text>
+            <text x="16" y="59" text-anchor="start" font-size="11.5" font-weight="600">pairing, try 1</text>
+            <text x="16" y="73" text-anchor="start" font-size="10" opacity=".6">2026-09-30</text>
+            <rect x="170" y="44" width="364.515" height="22" fill="var(--surface-2)" stroke="currentColor" stroke-opacity=".35" stroke-width="1.2"/>
+            <rect x="534.515" y="44" width="286.71" height="22" fill="var(--priv-wash)" stroke="var(--priv)" stroke-opacity="1" stroke-width="1.2"/>
+            <text x="677.87" y="59" text-anchor="middle" font-size="10.5" fill="var(--priv)">SMP · digits shown, not confirmed</text>
+            <line x1="821.225" y1="40" x2="821.225" y2="70" stroke="var(--bad)" stroke-width="2.5"/>
+            <text x="817.225" y="37" text-anchor="end" font-size="10.5" font-weight="600" fill="var(--bad)">dropped 30.06 s after the digits: the SMP timeout</text>
+            <text x="350.5" y="59" text-anchor="middle" font-size="10.5" opacity=".65">GATT discovery, then idle</text>
+            <text x="16" y="115" text-anchor="start" font-size="11.5" font-weight="600">pairing, try 2</text>
+            <text x="16" y="129" text-anchor="start" font-size="10" opacity=".6">42 s later</text>
+            <rect x="170" y="100" width="201.115" height="22" fill="var(--surface-2)" stroke="currentColor" stroke-opacity=".35" stroke-width="1.2"/>
+            <rect x="371.115" y="100" width="161.31" height="22" fill="var(--priv-wash)" stroke="var(--priv)" stroke-opacity="1" stroke-width="1.2"/>
+            <rect x="532.425" y="100" width="302.575" height="22" fill="var(--core-wash)" stroke="var(--core)" stroke-opacity="1" stroke-width="1.2"/>
+            <text x="269.75" y="115" text-anchor="middle" font-size="10.5" opacity=".65">discovery · Identify → 0x05</text>
+            <text x="451.77" y="115" text-anchor="middle" font-size="10.5" fill="var(--priv)">SMP · 985572 confirmed</text>
+            <text x="683.712" y="115" text-anchor="middle" font-size="10.5" font-weight="600" fill="var(--core)">encrypted at 38.1 s</text>
+            <text x="16" y="171" text-anchor="start" font-size="11.5" font-weight="600">reconnect</text>
+            <text x="16" y="185" text-anchor="start" font-size="10" opacity=".6">a week later</text>
+            <rect x="170" y="156" width="1.2" height="22" fill="var(--surface-2)" stroke="currentColor" stroke-opacity=".35" stroke-width="1.2"/>
+            <rect x="170.76" y="156" width="664.24" height="22" fill="var(--core-wash)" stroke="var(--core)" stroke-opacity="1" stroke-width="1.2"/>
+            <text x="502.88" y="171" text-anchor="middle" font-size="10.5" font-weight="600" fill="var(--core)">encrypted at 0.08 s — no SMP pairing, no user</text>
+            <text x="16" y="240" text-anchor="start" font-size="11" font-weight="600">the reconnect, zoomed: milliseconds after the link came up</text>
+            <rect x="170" y="262" width="528" height="20" fill="var(--surface-2)" stroke="currentColor" stroke-opacity=".35" stroke-width="1.2"/>
+            <rect x="698" y="262" width="132" height="20" fill="var(--core-wash)" stroke="var(--core)" stroke-opacity="1" stroke-width="1.2"/>
+            <line x1="170" y1="290" x2="830" y2="290" stroke="currentColor" stroke-opacity=".4"/>
+            <line x1="170" y1="287" x2="170" y2="293" stroke="currentColor" stroke-width="1"/>
+            <text x="170" y="306" text-anchor="middle" font-size="10.5" opacity=".7">0</text>
+            <line x1="302" y1="287" x2="302" y2="293" stroke="currentColor" stroke-width="1"/>
+            <text x="302" y="306" text-anchor="middle" font-size="10.5" opacity=".7">20</text>
+            <line x1="434" y1="287" x2="434" y2="293" stroke="currentColor" stroke-width="1"/>
+            <text x="434" y="306" text-anchor="middle" font-size="10.5" opacity=".7">40</text>
+            <line x1="566" y1="287" x2="566" y2="293" stroke="currentColor" stroke-width="1"/>
+            <text x="566" y="306" text-anchor="middle" font-size="10.5" opacity=".7">60</text>
+            <line x1="698" y1="287" x2="698" y2="293" stroke="currentColor" stroke-width="1"/>
+            <text x="698" y="306" text-anchor="middle" font-size="10.5" opacity=".7">80</text>
+            <line x1="830" y1="287" x2="830" y2="293" stroke="currentColor" stroke-width="1"/>
+            <text x="830" y="306" text-anchor="middle" font-size="10.5" opacity=".7">100 ms</text>
+            <line x1="170" y1="260" x2="170" y2="284" stroke="var(--air)" stroke-width="2"/>
+            <line x1="203" y1="260" x2="203" y2="284" stroke="var(--air)" stroke-width="2"/>
+            <line x1="354.8" y1="260" x2="354.8" y2="284" stroke="var(--air)" stroke-width="2"/>
+            <line x1="698" y1="260" x2="698" y2="284" stroke="var(--core)" stroke-width="2"/>
+            <text x="170" y="324" text-anchor="start" font-size="10.5" fill="var(--air)">link up</text>
+            <text x="203" y="338" text-anchor="start" font-size="10.5" fill="var(--air)">Security Request (laptop)</text>
+            <text x="354.8" y="324" text-anchor="start" font-size="10.5" fill="var(--air)">LTK Request → stored LTK</text>
+            <text x="698" y="338" text-anchor="middle" font-size="10.5" fill="var(--core)">Encryption Change</text>
+            </g>
+          </svg>
+        </div>
+        <figcaption>From timeline.py on the 2026-09-30 pairing capture and the 2026-10-07 reconnection capture. Purple: SMP pairing. Teal: encrypted.</figcaption>
+      </figure>
+      <pre><span class="d">$ python3 timeline.py captures/reconnect-20261007-1955.pcapng</span>
+    8.658  &lt; HCI    LE Enhanced Connection Complete: handle 0x800, we are peripheral, interval 17.5 ms
+    8.663  &gt; SMP    Security Request
+    8.686  &lt; HCI    LE Long Term Key Request: the central starts encryption (Rand and EDIV 0: an LE Secure Connections key)
+    8.686  &gt; HCI    LE Long Term Key Request Reply: handle 0x800, <span class="p">LTK given (16 octets, withheld)</span>
+    8.738  &lt; HCI    Encryption Change: on (AES-CCM)
+
+LE connection, handle 0x800, we are peripheral, interval 47.5 ms, CSA #2
+  <span class="g">encrypted 80 ms after connecting, from a key stored at an earlier pairing — no SMP at all</span></pre>
+      <ul class="facts"><li>SMP packets: <b>13</b> when pairing, <b>1</b> on reconnect</li><li>one LE pairing also derived a <b>BR/EDR link key</b></li><li>CSA <b>#2</b> on every connection</li></ul>
+    </div>
+
   </div>
 </section>
 
