@@ -158,6 +158,28 @@
   .layers td:last-child{white-space:nowrap;color:var(--muted)}
   .layers .no{color:var(--bad);font-weight:600}
 
+  .fields{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,430px),1fr));gap:.9rem;margin-top:1rem}
+  .fcard{border:1px solid var(--rule);border-top:3px solid var(--ft,var(--rule));border-radius:4px;
+         background:var(--surface);padding:.75rem .85rem .8rem;min-width:0}
+  .fcard h4{margin:0 0 .15rem;font:600 .92rem/1.3 "IBM Plex Sans",sans-serif;color:var(--ft,var(--ink))}
+  .fcard .where{font:500 .7rem/1.3 "IBM Plex Mono",monospace;color:var(--muted);margin:0 0 .55rem}
+  .strip{display:flex;border:1px solid var(--ft,var(--rule));border-radius:3px;overflow:hidden;margin-bottom:.55rem}
+  .strip span{flex-basis:0;min-width:0;padding:.3rem .15rem;text-align:center;font:500 .66rem/1.25 "IBM Plex Mono",monospace;
+              color:var(--muted);border-left:1px solid var(--rule);overflow-wrap:normal;min-width:3.3em}
+  .strip span:first-child{border-left:0}
+  .strip b{display:block;font:600 .8rem/1.3 "IBM Plex Mono",monospace;color:var(--ft,var(--ink))}
+  .strip .u b{color:var(--muted);font-weight:500}
+  .fdef{border-collapse:collapse;width:100%;font:400 .78rem/1.42 "IBM Plex Sans",sans-serif}
+  .fdef td{padding:.28rem .4rem;border-top:1px solid var(--rule-2);vertical-align:top}
+  .fdef td:nth-child(1){font:600 .76rem/1.42 "IBM Plex Mono",monospace;white-space:nowrap}
+  .fdef td:nth-child(2){font:400 .74rem/1.42 "IBM Plex Mono",monospace;color:var(--muted);white-space:nowrap}
+  .fdef td:nth-child(3){font:600 .76rem/1.42 "IBM Plex Mono",monospace;white-space:nowrap}
+  @media(max-width:600px){
+    .fdef tr{display:grid;grid-template-columns:auto auto 1fr;column-gap:.2rem;border-top:1px solid var(--rule-2)}
+    .fdef td{border-top:0}
+    .fdef td:nth-child(4){grid-column:1/-1;padding-top:0}
+  }
+
   footer{margin-top:3.6rem;padding-top:1.4rem;border-top:1px solid var(--rule);
          color:var(--muted);font-size:.88rem}
   footer ul{margin:.4rem 0 1rem;padding-left:1.2rem}
@@ -523,6 +545,57 @@
           <text x="490" y="410" text-anchor="start" font-size="11">SN, NESN, MD: acknowledgement and flow, never seen by the host</text>
       </g>
     </svg>
+  </div>
+  <p class="claim" style="max-width:80ch;margin-top:1.8rem"><b>Every field, named.</b> The same packet, one part at a time, in the order the bytes travel. Values are from frame 371; <code>?</code> marks a field the controller fills in on air, which no HCI capture can show. Bit strips are drawn most significant bit first; bytes on the wire are little-endian. Over UART the ACL packet is also preceded by an H4 indicator byte <code>0x02</code>; over USB, as here, it is not.</p>
+  <div class="fields">
+    <div class="fcard" style="--ft:var(--air)">
+      <h4>Preamble</h4>
+      <p class="where">1 byte · on air only · radio hardware</p>
+      <div class="strip"><span style="flex-grow:8">Preamble<b>0101 0101 or 1010 1010</b></span></div>
+      <table class="fdef"><tr><td>Preamble</td><td>8 bit</td><td>alternating</td><td>Alternating bits, so the receiver locks its clock and gain before data begins. Which phase depends on the first bit of the access address.</td></tr></table>
+    </div>
+    <div class="fcard" style="--ft:var(--air)">
+      <h4>Access Address</h4>
+      <p class="where">4 bytes · on air only · controller</p>
+      <div class="strip"><span class="u" style="flex-grow:32">Access Address<b>not in any HCI capture</b></span></div>
+      <table class="fdef"><tr><td>Access Address</td><td>32 bit</td><td>?</td><td>Says which connection the packet belongs to. Picked at random by the central for each connection and sent in CONNECT_IND; every advertising packet uses 0x8E89BED6.</td></tr></table>
+    </div>
+    <div class="fcard" style="--ft:var(--air)">
+      <h4>LL header</h4>
+      <p class="where">2 bytes · on air only · controller · first byte drawn bit 7 → bit 0</p>
+      <div class="strip"><span style="flex-grow:2">RFU<b>0</b></span><span style="flex-grow:1">CP<b>0</b></span><span class="u" style="flex-grow:1">MD<b>?</b></span><span class="u" style="flex-grow:1">SN<b>?</b></span><span class="u" style="flex-grow:1">NESN<b>?</b></span><span style="flex-grow:2">LLID<b>10</b></span><span style="flex-grow:8">Length<b>0x07</b></span></div>
+      <table class="fdef"><tr><td>LLID</td><td>2 bit</td><td>10</td><td>Link Layer ID. 10: start of an L2CAP message, or a whole one. 01: continuation, or an empty packet. 11: a link-layer control PDU (LL_*), which never reaches the host.</td></tr><tr><td>NESN</td><td>1 bit</td><td>?</td><td>Next Expected Sequence Number: acknowledges the other side's last packet (flips) or asks for it again (does not).</td></tr><tr><td>SN</td><td>1 bit</td><td>?</td><td>Sequence Number of this packet, 0 or 1, so a retransmission is recognised as a repeat.</td></tr><tr><td>MD</td><td>1 bit</td><td>?</td><td>More Data: the sender has more to send in this connection event, so the event stays open.</td></tr><tr><td>CP</td><td>1 bit</td><td>0</td><td>CTEInfo Present: a 1-byte CTEInfo field follows the header (direction finding). 0 here.</td></tr><tr><td>RFU</td><td>2 bit</td><td>00</td><td>Reserved for future use.</td></tr><tr><td>Length</td><td>8 bit</td><td>7</td><td>Bytes of payload after the header, MIC included. Here L2CAP header 4 + ATT 3.</td></tr></table>
+    </div>
+    <div class="fcard" style="--ft:var(--core)">
+      <h4>L2CAP basic header</h4>
+      <p class="where">4 bytes · on air and over HCI · host stack</p>
+      <div class="strip"><span style="flex-grow:16">PDU Length<b>03 00 → 3</b></span><span style="flex-grow:16">Channel ID<b>04 00 → 0x0004</b></span></div>
+      <table class="fdef"><tr><td>PDU Length</td><td>16 bit</td><td>3</td><td>Bytes of payload after this header, little-endian: the whole PDU even if it is split over several packets — what the reassembler counts against.</td></tr><tr><td>Channel ID</td><td>16 bit</td><td>0x0004</td><td>Which protocol the payload is for. 0x0004 ATT, 0x0005 LE signalling, 0x0006 SMP (pairing); 0x0040 and up, dynamic channels.</td></tr></table>
+    </div>
+    <div class="fcard" style="--ft:var(--gatt)">
+      <h4>ATT PDU</h4>
+      <p class="where">3 bytes here · on air and over HCI · host stack · opcode drawn bit 7 → bit 0</p>
+      <div class="strip"><span style="flex-grow:1">Sig<b>0</b></span><span style="flex-grow:1">Cmd<b>0</b></span><span style="flex-grow:6">Method<b>001010</b></span><span style="flex-grow:16">Attribute Handle<b>24 00 → 0x0024</b></span></div>
+      <table class="fdef"><tr><td>Sig flag</td><td>1 bit</td><td>0</td><td>Authentication Signature flag, opcode bit 7: a 12-byte signature ends the PDU (signed write only).</td></tr><tr><td>Cmd flag</td><td>1 bit</td><td>0</td><td>Command flag, opcode bit 6: a command, which gets no response (Write Command).</td></tr><tr><td>Method</td><td>6 bit</td><td>0x0A</td><td>Opcode bits 5–0: what to do. 0x0A Read Request. Opcode = flags + method = 0x0A.</td></tr><tr><td>Attribute Handle</td><td>16 bit</td><td>0x0024</td><td>Which attribute, little-endian. Project 02's GATT table puts Battery Level at 0x0024. Other opcodes carry other parameters here.</td></tr></table>
+    </div>
+    <div class="fcard" style="--ft:var(--air)">
+      <h4>MIC</h4>
+      <p class="where">4 bytes · on air only · controller · only once encrypted</p>
+      <div class="strip"><span class="u" style="flex-grow:32">Message Integrity Check<b>none on this link</b></span></div>
+      <table class="fdef"><tr><td>MIC</td><td>32 bit</td><td>—</td><td>AES-CCM authentication tag over the payload, added once the link is encrypted after pairing; a changed bit fails it. This connection was not yet paired.</td></tr></table>
+    </div>
+    <div class="fcard" style="--ft:var(--air)">
+      <h4>CRC</h4>
+      <p class="where">3 bytes · on air only · radio hardware</p>
+      <div class="strip"><span class="u" style="flex-grow:24">CRC<b>not in any HCI capture</b></span></div>
+      <table class="fdef"><tr><td>CRC</td><td>24 bit</td><td>?</td><td>Cyclic Redundancy Check over the PDU (polynomial x²⁴+x¹⁰+x⁹+x⁶+x⁴+x³+x+1, start value from CONNECT_IND). A bad CRC: no acknowledgement, so the sender retransmits.</td></tr></table>
+    </div>
+    <div class="fcard" style="--ft:var(--air)">
+      <h4>HCI ACL header</h4>
+      <p class="where">4 bytes · over HCI only, never on air · host stack ↔ chip firmware · first word drawn bit 15 → bit 0</p>
+      <div class="strip"><span style="flex-grow:2">BC<b>00</b></span><span style="flex-grow:2">PB<b>10</b></span><span style="flex-grow:12">Connection Handle<b>0x801</b></span><span style="flex-grow:16">Data Total Length<b>07 00 → 7</b></span></div>
+      <table class="fdef"><tr><td>Connection Handle</td><td>12 bit</td><td>0x801</td><td>Which connection, as numbered by the controller when it was made (HCI LE Connection Complete). The host-side name for what the access address is on air.</td></tr><tr><td>PB flag</td><td>2 bit</td><td>10</td><td>Packet Boundary. 00: start, host to controller. 10: start, controller to host. 01: continuing fragment. Maps to LLID on air.</td></tr><tr><td>BC flag</td><td>2 bit</td><td>00</td><td>Broadcast. Always 00 on LE.</td></tr><tr><td>Data Total Length</td><td>16 bit</td><td>7</td><td>Bytes after this header in this packet, little-endian. ble_acl_parse() refuses a packet where it does not match.</td></tr></table>
+    </div>
   </div>
 </section>
 
