@@ -233,7 +233,7 @@
 
         <line x1="260" y1="140" x2="260" y2="166" stroke="var(--core)" stroke-width="1.5"/>
         <text x="250" y="182" text-anchor="middle" fill="var(--core)">01 · parses what crosses HCI</text>
-        <text x="250" y="199" text-anchor="middle" font-weight="400" font-size="11" opacity=".7">C99, no heap, no libc · 3.5 KB</text>
+        <text x="250" y="199" text-anchor="middle" font-weight="400" font-size="11" opacity=".7">C99, no heap, no libc · 3.9 KB</text>
 
         <line x1="720" y1="140" x2="720" y2="182" stroke="var(--gatt)" stroke-width="1.5"/>
         <text x="726" y="198" text-anchor="middle" fill="var(--gatt)">02 · GATT server on D-Bus</text>
@@ -312,10 +312,10 @@
 
     <div class="leaf">
       <div class="lh"><span class="num">01.1</span><h3>Proven three ways that share no assumption</h3><span class="tag">c99 · asan · tshark</span></div>
-      <p class="claim">Spec and RFC test vectors; <b>300 000 fuzz inputs</b> in exactly-sized buffers under ASan + UBSan, so a one-byte over-read aborts the run; and a differential run against Wireshark over <b>every report in the 40-minute capture</b> and <b>every ACL packet of three phone sessions</b>, down to ATT.</p>
+      <p class="claim">Spec and RFC test vectors; <b>520 000 fuzz inputs</b> in exactly-sized buffers under ASan + UBSan, so a one-byte over-read aborts the run; and a differential run against Wireshark over <b>every report in the 40-minute capture</b> and <b>every ACL packet of three phone sessions</b>, down to ATT.</p>
       <pre><span class="d">$ ./build-asan/ble_tests</span>
   200000 inputs, 215848 AD structures, 43915 reports parsed, all in bounds
-<span class="g">620 checks, 0 failed</span>
+<span class="g">2060 checks, 0 failed</span>
 <span class="d">$ python3 tools/diff_vs_tshark.py ../03-hci-capture/captures/scan-40min.pcapng</span>
 59437 reports compared on 6 fields each (356622 values)
 <span class="g">mismatches: 0</span>
@@ -396,6 +396,133 @@
     <tr><td>MIC</td><td>Message Integrity Check</td><td>The AES-CCM tag, once the link is encrypted after pairing: a changed bit fails it</td><td>controller · if encrypted</td></tr>
     <tr><td>CRC</td><td>Cyclic Redundancy Check</td><td>Catches bit errors from noise. A bad CRC means no acknowledgement, so the sender retransmits</td><td>radio · yes</td></tr>
   </table>
+  </div>
+  <p class="claim" style="max-width:80ch;margin-top:1.6rem"><b>The ACL header, bit by bit.</b> Four bytes hold four values, because handle, PB and BC share one 16-bit word; <code>ble_acl_t</code> has a fifth field, <code>data</code>, which is not in the header at all but points just past it. The word is little-endian, so the second byte on the wire is its high byte. On air none of this exists: the LL header carries the same boundary flag as LLID and the same length, and no handle.</p>
+  <div class="packet">
+    <svg viewBox="0 0 960 424" role="img" aria-label="The bytes 01 28 07 00 on the wire. Read little-endian, 01 28 is the word 0x2801 and 07 00 is 7. The 16 bits of 0x2801 are 0010 1000 0000 0001: bits 15 and 14 are BC = 00, bits 13 and 12 are PB = 10, bits 11 to 0 are the handle 0x801. ble_acl_parse returns bc 0, pb 2, handle 0x801, len 7, and data pointing at the next byte. On air the LL header has LLID = 10 in its two low bits, the same meaning as PB 10, and Length 07; it has no handle.">
+      <g font-family="IBM Plex Mono,monospace" fill="currentColor">
+          <text x="20" y="30" text-anchor="start" font-size="11.5" font-weight="600">on the wire, in order</text>
+          <rect x="620" y="40" width="50" height="30" rx="3" fill="var(--surface-2)" stroke="currentColor" stroke-width="1.3"/>
+          <text x="645.0" y="60" text-anchor="middle" font-size="13" font-weight="600">01</text>
+          <rect x="670" y="40" width="50" height="30" rx="3" fill="var(--surface-2)" stroke="currentColor" stroke-width="1.3"/>
+          <text x="695.0" y="60" text-anchor="middle" font-size="13" font-weight="600">28</text>
+          <rect x="720" y="40" width="60" height="30" rx="3" fill="var(--surface-2)" stroke="currentColor" stroke-width="1.3"/>
+          <text x="750.0" y="60" text-anchor="middle" font-size="13" font-weight="600">07</text>
+          <rect x="780" y="40" width="60" height="30" rx="3" fill="var(--surface-2)" stroke="currentColor" stroke-width="1.3"/>
+          <text x="810.0" y="60" text-anchor="middle" font-size="13" font-weight="600">00</text>
+          <rect x="840" y="40" width="110" height="30" rx="3" fill="var(--gatt-wash)" stroke="var(--gatt)" stroke-width="1.3"/>
+          <text x="895" y="60" text-anchor="middle" font-size="12">03 00 04 …</text>
+          <line x1="895" y1="70" x2="895" y2="80" stroke="var(--gatt)" stroke-opacity=".9" stroke-width="1.3"/>
+          <text x="895" y="94" text-anchor="middle" font-size="10.5" fill="var(--gatt)">.data starts here</text>
+          <text x="20" y="118" text-anchor="start" font-size="11.5" font-weight="600">little-endian words</text>
+          <rect x="40" y="128" width="320" height="26" rx="3" fill="var(--surface-2)" stroke="currentColor" stroke-width="1.3"/>
+          <text x="200" y="146" text-anchor="middle" font-size="12">0x28 — bits 15…8</text>
+          <rect x="360" y="128" width="320" height="26" rx="3" fill="var(--surface-2)" stroke="currentColor" stroke-width="1.3"/>
+          <text x="520" y="146" text-anchor="middle" font-size="12">0x01 — bits 7…0</text>
+          <rect x="720" y="128" width="120" height="26" rx="3" fill="var(--surface-2)" stroke="currentColor" stroke-width="1.3"/>
+          <text x="780" y="146" text-anchor="middle" font-size="12">0x0007</text>
+          <line x1="645" y1="70" x2="520" y2="128" stroke="currentColor" stroke-opacity=".45" stroke-width="1.3"/>
+          <line x1="695" y1="70" x2="200" y2="128" stroke="currentColor" stroke-opacity=".45" stroke-width="1.3"/>
+          <line x1="750" y1="70" x2="770" y2="128" stroke="currentColor" stroke-opacity=".45" stroke-width="1.3"/>
+          <line x1="810" y1="70" x2="790" y2="128" stroke="currentColor" stroke-opacity=".45" stroke-width="1.3"/>
+          <rect x="40" y="176" width="40" height="34" fill="var(--surface-2)" stroke="currentColor" stroke-opacity=".35"/>
+          <text x="60" y="199" text-anchor="middle" font-size="15" font-weight="600" opacity=".6">0</text>
+          <text x="60" y="171" text-anchor="middle" font-size="9.5" opacity=".55">15</text>
+          <rect x="80" y="176" width="40" height="34" fill="var(--surface-2)" stroke="currentColor" stroke-opacity=".35"/>
+          <text x="100" y="199" text-anchor="middle" font-size="15" font-weight="600" opacity=".6">0</text>
+          <text x="100" y="171" text-anchor="middle" font-size="9.5" opacity=".55">14</text>
+          <rect x="120" y="176" width="40" height="34" fill="var(--air-wash)" stroke="var(--air)" stroke-width="1"/>
+          <text x="140" y="199" text-anchor="middle" font-size="15" font-weight="600" fill="var(--air)">1</text>
+          <text x="140" y="171" text-anchor="middle" font-size="9.5" opacity=".55">13</text>
+          <rect x="160" y="176" width="40" height="34" fill="var(--air-wash)" stroke="var(--air)" stroke-width="1"/>
+          <text x="180" y="199" text-anchor="middle" font-size="15" font-weight="600" fill="var(--air)">0</text>
+          <text x="180" y="171" text-anchor="middle" font-size="9.5" opacity=".55">12</text>
+          <rect x="200" y="176" width="40" height="34" fill="var(--core-wash)" stroke="var(--core)" stroke-width="1"/>
+          <text x="220" y="199" text-anchor="middle" font-size="15" font-weight="600" fill="var(--core)">1</text>
+          <text x="220" y="171" text-anchor="middle" font-size="9.5" opacity=".55">11</text>
+          <rect x="240" y="176" width="40" height="34" fill="var(--core-wash)" stroke="var(--core)" stroke-width="1"/>
+          <text x="260" y="199" text-anchor="middle" font-size="15" font-weight="600" fill="var(--core)">0</text>
+          <text x="260" y="171" text-anchor="middle" font-size="9.5" opacity=".55">10</text>
+          <rect x="280" y="176" width="40" height="34" fill="var(--core-wash)" stroke="var(--core)" stroke-width="1"/>
+          <text x="300" y="199" text-anchor="middle" font-size="15" font-weight="600" fill="var(--core)">0</text>
+          <text x="300" y="171" text-anchor="middle" font-size="9.5" opacity=".55">9</text>
+          <rect x="320" y="176" width="40" height="34" fill="var(--core-wash)" stroke="var(--core)" stroke-width="1"/>
+          <text x="340" y="199" text-anchor="middle" font-size="15" font-weight="600" fill="var(--core)">0</text>
+          <text x="340" y="171" text-anchor="middle" font-size="9.5" opacity=".55">8</text>
+          <rect x="360" y="176" width="40" height="34" fill="var(--core-wash)" stroke="var(--core)" stroke-width="1"/>
+          <text x="380" y="199" text-anchor="middle" font-size="15" font-weight="600" fill="var(--core)">0</text>
+          <text x="380" y="171" text-anchor="middle" font-size="9.5" opacity=".55">7</text>
+          <rect x="400" y="176" width="40" height="34" fill="var(--core-wash)" stroke="var(--core)" stroke-width="1"/>
+          <text x="420" y="199" text-anchor="middle" font-size="15" font-weight="600" fill="var(--core)">0</text>
+          <text x="420" y="171" text-anchor="middle" font-size="9.5" opacity=".55">6</text>
+          <rect x="440" y="176" width="40" height="34" fill="var(--core-wash)" stroke="var(--core)" stroke-width="1"/>
+          <text x="460" y="199" text-anchor="middle" font-size="15" font-weight="600" fill="var(--core)">0</text>
+          <text x="460" y="171" text-anchor="middle" font-size="9.5" opacity=".55">5</text>
+          <rect x="480" y="176" width="40" height="34" fill="var(--core-wash)" stroke="var(--core)" stroke-width="1"/>
+          <text x="500" y="199" text-anchor="middle" font-size="15" font-weight="600" fill="var(--core)">0</text>
+          <text x="500" y="171" text-anchor="middle" font-size="9.5" opacity=".55">4</text>
+          <rect x="520" y="176" width="40" height="34" fill="var(--core-wash)" stroke="var(--core)" stroke-width="1"/>
+          <text x="540" y="199" text-anchor="middle" font-size="15" font-weight="600" fill="var(--core)">0</text>
+          <text x="540" y="171" text-anchor="middle" font-size="9.5" opacity=".55">3</text>
+          <rect x="560" y="176" width="40" height="34" fill="var(--core-wash)" stroke="var(--core)" stroke-width="1"/>
+          <text x="580" y="199" text-anchor="middle" font-size="15" font-weight="600" fill="var(--core)">0</text>
+          <text x="580" y="171" text-anchor="middle" font-size="9.5" opacity=".55">2</text>
+          <rect x="600" y="176" width="40" height="34" fill="var(--core-wash)" stroke="var(--core)" stroke-width="1"/>
+          <text x="620" y="199" text-anchor="middle" font-size="15" font-weight="600" fill="var(--core)">0</text>
+          <text x="620" y="171" text-anchor="middle" font-size="9.5" opacity=".55">1</text>
+          <rect x="640" y="176" width="40" height="34" fill="var(--core-wash)" stroke="var(--core)" stroke-width="1"/>
+          <text x="660" y="199" text-anchor="middle" font-size="15" font-weight="600" fill="var(--core)">1</text>
+          <text x="660" y="171" text-anchor="middle" font-size="9.5" opacity=".55">0</text>
+          <rect x="720" y="176" width="120" height="34" rx="3" fill="var(--gatt-wash)" stroke="var(--gatt)" stroke-width="1.3"/>
+          <text x="780" y="199" text-anchor="middle" font-size="15" font-weight="600" fill="var(--gatt)">7</text>
+          <path d="M40 216 L40 222 L120 222 L120 216" fill="none" stroke="currentColor" stroke-width="1.5"/>
+          <text x="80" y="238" text-anchor="middle" font-size="11.5" font-weight="600">BC = 00</text>
+          <path d="M120 216 L120 222 L200 222 L200 216" fill="none" stroke="var(--air)" stroke-width="1.5"/>
+          <text x="160" y="238" text-anchor="middle" font-size="11.5" font-weight="600" fill="var(--air)">PB = 10</text>
+          <path d="M200 216 L200 222 L680 222 L680 216" fill="none" stroke="var(--core)" stroke-width="1.5"/>
+          <text x="440" y="238" text-anchor="middle" font-size="11.5" font-weight="600" fill="var(--core)">handle = 1000 0000 0001 = 0x801</text>
+          <path d="M720 216 L720 222 L840 222 L840 216" fill="none" stroke="var(--gatt)" stroke-width="1.5"/>
+          <text x="780" y="238" text-anchor="middle" font-size="11.5" font-weight="600" fill="var(--gatt)">length = 7</text>
+          <rect x="40" y="266" width="80" height="28" rx="3" fill="var(--surface-2)" stroke="currentColor" stroke-width="1.3"/>
+          <text x="80" y="285" text-anchor="middle" font-size="11.5">.bc = 0</text>
+          <rect x="120" y="266" width="80" height="28" rx="3" fill="var(--air-wash)" stroke="var(--air)" stroke-width="1.3"/>
+          <text x="160" y="285" text-anchor="middle" font-size="11.5" fill="var(--air)">.pb = 2</text>
+          <rect x="290" y="266" width="300" height="28" rx="3" fill="var(--core-wash)" stroke="var(--core)" stroke-width="1.3"/>
+          <text x="440" y="285" text-anchor="middle" font-size="11.5" fill="var(--core)">.handle = 0x801</text>
+          <rect x="720" y="266" width="120" height="28" rx="3" fill="var(--gatt-wash)" stroke="var(--gatt)" stroke-width="1.3"/>
+          <text x="780" y="285" text-anchor="middle" font-size="11.5" fill="var(--gatt)">.len = 7</text>
+          <line x1="80" y1="244" x2="80" y2="266" stroke="currentColor" stroke-opacity=".45" stroke-width="1.3"/>
+          <line x1="160" y1="244" x2="160" y2="266" stroke="currentColor" stroke-opacity=".45" stroke-width="1.3"/>
+          <line x1="440" y1="244" x2="440" y2="266" stroke="currentColor" stroke-opacity=".45" stroke-width="1.3"/>
+          <line x1="780" y1="244" x2="780" y2="266" stroke="currentColor" stroke-opacity=".45" stroke-width="1.3"/>
+          <text x="20" y="318" text-anchor="start" font-size="11.5" font-weight="600">&#8593; what ble_acl_parse() returns, as ble_acl_t</text>
+          <text x="20" y="356" text-anchor="start" font-size="11.5" font-weight="600">on air, the controller writes the LL header instead — first byte, bit 7 on the left</text>
+          <rect x="40" y="366" width="40" height="40" fill="var(--surface-2)" stroke="currentColor" stroke-opacity=".35"/>
+          <text x="60" y="390" text-anchor="middle" font-size="9.5" opacity=".65">RFU</text>
+          <rect x="80" y="366" width="40" height="40" fill="var(--surface-2)" stroke="currentColor" stroke-opacity=".35"/>
+          <text x="100" y="390" text-anchor="middle" font-size="9.5" opacity=".65">RFU</text>
+          <rect x="120" y="366" width="40" height="40" fill="var(--surface-2)" stroke="currentColor" stroke-opacity=".35"/>
+          <text x="140" y="390" text-anchor="middle" font-size="9.5" opacity=".65">CP</text>
+          <rect x="160" y="366" width="40" height="40" fill="var(--surface-2)" stroke="currentColor" stroke-opacity=".35"/>
+          <text x="180" y="390" text-anchor="middle" font-size="9.5" opacity=".65">MD</text>
+          <rect x="200" y="366" width="40" height="40" fill="var(--surface-2)" stroke="currentColor" stroke-opacity=".35"/>
+          <text x="220" y="390" text-anchor="middle" font-size="9.5" opacity=".65">SN</text>
+          <rect x="240" y="366" width="40" height="40" fill="var(--surface-2)" stroke="currentColor" stroke-opacity=".35"/>
+          <text x="260" y="390" text-anchor="middle" font-size="9.5" opacity=".65">NESN</text>
+          <rect x="280" y="366" width="40" height="40" fill="var(--air-wash)" stroke="var(--air)" stroke-width="1"/>
+          <text x="300" y="381" text-anchor="middle" font-size="9" fill="var(--air)">LLID</text>
+          <text x="300" y="400" text-anchor="middle" font-size="15" font-weight="600" fill="var(--air)">1</text>
+          <rect x="320" y="366" width="40" height="40" fill="var(--air-wash)" stroke="var(--air)" stroke-width="1"/>
+          <text x="340" y="381" text-anchor="middle" font-size="9" fill="var(--air)">LLID</text>
+          <text x="340" y="400" text-anchor="middle" font-size="15" font-weight="600" fill="var(--air)">0</text>
+          <rect x="360" y="366" width="110" height="40" rx="3" fill="var(--gatt-wash)" stroke="var(--gatt)" stroke-width="1.3"/>
+          <text x="415" y="381" text-anchor="middle" font-size="9.5" fill="var(--gatt)">Length</text>
+          <text x="415" y="400" text-anchor="middle" font-size="15" font-weight="600" fill="var(--gatt)">07</text>
+          <text x="490" y="378" text-anchor="start" font-size="11" fill="var(--air)">LLID 10 = PB 10: start of an L2CAP message (01 = 01: continuation)</text>
+          <text x="490" y="394" text-anchor="start" font-size="11">Length = .len; no handle: the Access Address names the connection</text>
+          <text x="490" y="410" text-anchor="start" font-size="11">SN, NESN, MD: acknowledgement and flow, never seen by the host</text>
+      </g>
+    </svg>
   </div>
 </section>
 
