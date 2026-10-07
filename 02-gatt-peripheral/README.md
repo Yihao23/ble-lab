@@ -266,8 +266,10 @@ disagreed with it three times:
 - [x] Write Identify before pairing: refused with `0x05`; the phone paired
   with numeric comparison (both KeyboardDisplay, Secure Connections), and
   the write went through. The six digits recomputed from the capture.
-- [ ] TODO(you): reconnect and show from a capture that a bonded link
-  encrypts with the stored LTK — LE Long Term Key Request, no SMP at all.
+- [x] Reconnect and show from a capture that a bonded link encrypts with
+  the stored LTK: 80 ms after connecting, LE Long Term Key Request, no SMP
+  pairing — the laptop itself asked with a Security Request. Identify then
+  accepted at once. Written up in project 03's REPORT-02.
 - [ ] TODO(you): set `Privacy = device` in `/etc/bluetooth/main.conf`, restart
   bluetoothd, capture again, and confirm the own address type is no longer
   public.
