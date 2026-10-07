@@ -35,6 +35,7 @@ add_executable(ble_tests
     tests/test_hci_multi.c
     tests/test_cmac.c
     tests/test_l2cap_att.c
+    tests/test_reasm.c
     tests/test_fuzz.c)
 target_link_libraries(ble_tests PRIVATE ble_core)
 target_compile_options(ble_tests PRIVATE -Wall -Wextra -Werror)

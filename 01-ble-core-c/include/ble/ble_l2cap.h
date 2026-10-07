@@ -17,11 +17,13 @@
  *
  * @par Fragmentation
  * An L2CAP PDU longer than one ACL packet arrives as a first packet followed
- * by continuing fragments (PB = 0b01). This version does not reassemble: it
- * recognises both cases and reports them, so a caller never mistakes part
- * of a PDU for the whole of one.
+ * by continuing fragments (PB = 0b01). ble_l2cap_parse() recognises both
+ * cases and reports them, so a caller never mistakes part of a PDU for the
+ * whole of one; ble_l2cap_reasm_push() puts the parts back together.
  *
- * Nothing is copied: every pointer points into the caller's buffer.
+ * The parsers copy nothing: every pointer points into the caller's buffer.
+ * The reassembler copies a fragmented PDU into a buffer the caller gives it
+ * once, and nothing else: no heap.
  *
  * @defgroup ble_l2cap HCI ACL and L2CAP
  * @brief Split an HCI ACL data packet into connection, channel and payload.
@@ -117,6 +119,95 @@ typedef enum {
  *                                 more payload than PDU Length allows.
  */
 ble_l2cap_status_t ble_l2cap_parse(const ble_acl_t *acl, ble_l2cap_t *out);
+
+/**
+ * @name Reassembly
+ * @{
+ */
+
+/** @brief Smallest buffer ble_l2cap_reasm_init() accepts: one L2CAP basic header. */
+#define BLE_L2CAP_REASM_MIN 4u
+
+/**
+ * @brief Reassembly state for one connection in one direction.
+ *
+ * Fragments of two PDUs never interleave on one connection and direction,
+ * so one context per connection (and per direction, for a capture that
+ * holds both) is enough. Treat the fields as private: they are public only
+ * so the context can live on the stack or in a static, without a heap.
+ */
+typedef struct {
+    uint8_t  *buf;     /**< Storage for a fragmented PDU, header included. */
+    size_t    cap;     /**< Size of @ref buf. */
+    uint8_t   state;   /**< Idle, collecting or skipping; see ble_l2cap.c. */
+    uint16_t  handle;  /**< Connection of the PDU in progress. */
+    size_t    have;    /**< Octets of the PDU in progress received so far, header included. */
+    size_t    want;    /**< 4 + PDU Length once the length field has arrived; 0 before. */
+    uint32_t  lost;    /**< PDUs started but never delivered. Only ever grows. */
+} ble_l2cap_reasm_t;
+
+/** @brief Result of ble_l2cap_reasm_push(). */
+typedef enum {
+    BLE_L2CAP_REASM_ERR_MALFORMED = -5,  /**< PB = 0b11, reserved on LE. Packet ignored, state unchanged. */
+    BLE_L2CAP_REASM_ERR_OVERRUN   = -4,  /**< More octets than PDU Length allows. That PDU is dropped. */
+    BLE_L2CAP_REASM_ERR_TOO_LONG  = -3,  /**< The PDU does not fit the buffer. It and its later fragments are dropped. */
+    BLE_L2CAP_REASM_ERR_HANDLE    = -2,  /**< A continuation for another connection. Ignored; the PDU in progress is kept. */
+    BLE_L2CAP_REASM_ERR_ORPHAN    = -1,  /**< A continuation with no PDU in progress. Ignored. */
+    BLE_L2CAP_REASM_PENDING       = 0,   /**< Taken; the PDU needs more fragments. */
+    BLE_L2CAP_REASM_COMPLETE      = 1    /**< A whole PDU is in @p out. */
+} ble_l2cap_reasm_status_t;
+
+/**
+ * @brief Prepare a context, with the storage it may use.
+ *
+ * @param[out] r    Context to initialise: idle, @c lost = 0.
+ * @param[in]  buf  Storage for fragmented PDUs; must outlive @p r. The
+ *                  largest PDU it can rebuild is @p cap octets, header
+ *                  included: for ATT, 4 + the negotiated MTU.
+ * @param[in]  cap  Size of @p buf.
+ * @return 1 if ready; 0, with @p r untouched, if @p buf is NULL or
+ *         @p cap is below ::BLE_L2CAP_REASM_MIN.
+ */
+int ble_l2cap_reasm_init(ble_l2cap_reasm_t *r, uint8_t *buf, size_t cap);
+
+/**
+ * @brief Feed one ACL packet; get a whole L2CAP PDU when one is complete.
+ *
+ * @param[in,out] r    Context from ble_l2cap_reasm_init().
+ * @param[in]     acl  A packet from ble_acl_parse(), on the connection and
+ *                     in the direction @p r is for.
+ * @param[out]    out  On ::BLE_L2CAP_REASM_COMPLETE: channel, PDU Length
+ *                     and payload. Untouched otherwise.
+ * @return One of ::ble_l2cap_reasm_status_t.
+ *
+ * Rules, in the order they apply:
+ * | Packet | State | Result |
+ * |---|---|---|
+ * | PB 0b11 | any | ERR_MALFORMED; nothing changes |
+ * | start (PB 0b00 or 0b10) | collecting | the PDU in progress is dropped (@c lost + 1), then as below |
+ * | start | skipping | skipping ends (that PDU was counted already), then as below |
+ * | start, holding the whole PDU | | COMPLETE, @c payload points into @p acl: nothing copied |
+ * | start, more octets than its PDU Length | | ERR_OVERRUN, @c lost + 1 |
+ * | start, PDU larger than @c cap | | ERR_TOO_LONG, @c lost + 1; later fragments skipped |
+ * | start, part of a PDU | | PENDING, copied; the header may be split too |
+ * | continuation (PB 0b01) | idle | ERR_ORPHAN |
+ * | continuation | other handle | ERR_HANDLE |
+ * | continuation | collecting | PENDING, or COMPLETE with @c payload in @c buf; ERR_OVERRUN (@c lost + 1) if it brings more than the PDU lacks; ERR_TOO_LONG (@c lost + 1) if the length now known exceeds @c cap |
+ * | continuation | skipping | ERR_TOO_LONG until the PDU's octets are all seen; ERR_OVERRUN if it brings more |
+ *
+ * A start always begins a new PDU, on its own handle. Where two errors
+ * apply at once, the earlier row and, within a cell, the first named wins.
+ *
+ * A start fragment may carry fewer than 4 octets — even none — so the PDU
+ * Length can arrive in a continuation; Linux handles the same case. The
+ * size check is made as soon as the length is known.
+ *
+ * A @c payload in @c buf stays valid until the next call with @p r; one in
+ * @p acl as long as the caller's packet does.
+ */
+ble_l2cap_reasm_status_t ble_l2cap_reasm_push(ble_l2cap_reasm_t *r, const ble_acl_t *acl,
+                                              ble_l2cap_t *out);
+/** @} */
 
 #ifdef __cplusplus
 }

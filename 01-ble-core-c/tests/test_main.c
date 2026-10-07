@@ -25,6 +25,9 @@ int main(void)
     suite_l2cap();
     suite_att();
     suite_acl_fuzz();
+    suite_reasm();
+    suite_reasm_real();
+    suite_reasm_fuzz();
     suite_fuzz();
 
     printf("\n%d checks, %d failed\n", g_checks, g_failures);
