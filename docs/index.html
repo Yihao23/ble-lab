@@ -149,6 +149,15 @@
   .scope td:nth-child(3){color:var(--muted)}
   .scope .wrapx{overflow-x:auto}
 
+  .packet{overflow-x:auto;margin:.9rem 0 0}
+  .packet svg{min-width:760px}
+  .layers{border-collapse:collapse;width:100%;font:400 .8rem/1.45 "IBM Plex Sans",sans-serif;margin-top:1rem}
+  .layers th,.layers td{text-align:left;padding:.4rem .6rem;border-top:1px solid var(--rule-2);vertical-align:top}
+  .layers th{font:600 .72rem/1.3 "IBM Plex Mono",monospace;color:var(--muted);letter-spacing:.04em}
+  .layers td:first-child{font:600 .8rem/1.45 "IBM Plex Mono",monospace;white-space:nowrap}
+  .layers td:last-child{white-space:nowrap;color:var(--muted)}
+  .layers .no{color:var(--bad);font-weight:600}
+
   footer{margin-top:3.6rem;padding-top:1.4rem;border-top:1px solid var(--rule);
          color:var(--muted);font-size:.88rem}
   footer ul{margin:.4rem 0 1rem;padding-left:1.2rem}
@@ -337,6 +346,56 @@
        72  ble_ad_name (56) -&gt; ble_ad_next (16)</pre>
     </div>
 
+  </div>
+</section>
+
+
+<section class="span" style="--tone:var(--core);--tone-wash:var(--core-wash)">
+  <div class="bhead">
+    <span class="role">03 + 01 + 02 · one read, layer by layer</span>
+    <h2>One packet, every layer</h2>
+    <span class="why">the phone reads Battery Level · frame 371</span>
+  </div>
+  <p class="claim" style="max-width:80ch">Each layer wraps the one inside it: its header in front, the inner layer's whole PDU as its payload. The ATT request <code>0a 24 00</code> &mdash; &ldquo;read attribute 0x0024&rdquo; &mdash; travels inside an L2CAP PDU, which travels inside a Link Layer packet on air. <b>The HCI ACL header is never on air:</b> it exists only on the wire between the host and the Bluetooth chip, where the controller swaps it for the LL header. Everything in a box is part of some layer's PDU; only the preamble, access address and CRC frame the packet around the PDUs.</p>
+  <div class="packet">
+    <svg viewBox="0 0 950 320" role="img" aria-label="Top row, one radio packet on air: Preamble 1 byte, Access Address 4 bytes, LL header 2 bytes, L2CAP header 4 bytes, ATT PDU 3 bytes, MIC 4 bytes only once encrypted, CRC 3 bytes. LL header through MIC is the LL Data PDU. Bottom row, the same packet over HCI: HCI ACL header 01 28 07 00, then the same L2CAP header 03 00 04 00 and ATT PDU 0a 24 00. L2CAP header plus ATT PDU is the L2CAP PDU; with the ACL header, the HCI ACL data packet.">
+      <g font-family="IBM Plex Mono,monospace" font-size="12" fill="currentColor">
+        <path d="M20 34 L20 28 L930 28 L930 34" fill="none" stroke="currentColor" stroke-width="1.2" opacity=".55"/><text x="475.0" y="22" text-anchor="middle" font-size="11.5" font-weight="600">one radio packet on air (LE 1M PHY) — built and checked by the controller</text>
+        <rect x="20" y="36" width="100" height="60" rx="3" fill="var(--air-wash)" stroke="var(--air)" stroke-width="1.5"/><text x="70.0" y="55" text-anchor="middle" font-weight="600" fill="var(--air)">Preamble</text><text x="70.0" y="72" text-anchor="middle" font-size="11.5">0xAA or 0x55</text><text x="70.0" y="88" text-anchor="middle" font-size="10" opacity=".7">1 B</text>
+        <rect x="120" y="36" width="120" height="60" rx="3" fill="var(--air-wash)" stroke="var(--air)" stroke-width="1.5"/><text x="180.0" y="55" text-anchor="middle" font-weight="600" fill="var(--air)">Access Address</text><text x="180.0" y="72" text-anchor="middle" font-size="11.5">per connection</text><text x="180.0" y="88" text-anchor="middle" font-size="10" opacity=".7">4 B</text>
+        <rect x="240" y="36" width="130" height="60" rx="3" fill="var(--air-wash)" stroke="var(--air)" stroke-width="1.5"/><text x="305.0" y="55" text-anchor="middle" font-weight="600" fill="var(--air)">LL header</text><text x="305.0" y="72" text-anchor="middle" font-size="11.5">flags · 07</text><text x="305.0" y="88" text-anchor="middle" font-size="10" opacity=".7">LLID 10 · length 7</text>
+        <rect x="370" y="36" width="150" height="60" rx="3" fill="var(--core-wash)" stroke="var(--core)" stroke-width="1.5"/><text x="445.0" y="55" text-anchor="middle" font-weight="600" fill="var(--core)">L2CAP header</text><text x="445.0" y="72" text-anchor="middle" font-size="11.5">03 00 04 00</text><text x="445.0" y="88" text-anchor="middle" font-size="10" opacity=".7">length 3 · CID 0x0004</text>
+        <rect x="520" y="36" width="170" height="60" rx="3" fill="var(--gatt-wash)" stroke="var(--gatt)" stroke-width="1.5"/><text x="605.0" y="55" text-anchor="middle" font-weight="600" fill="var(--gatt)">ATT PDU</text><text x="605.0" y="72" text-anchor="middle" font-size="11.5">0a 24 00</text><text x="605.0" y="88" text-anchor="middle" font-size="10" opacity=".7">READ_REQ · handle 0x0024</text>
+        <rect x="690" y="36" width="140" height="60" rx="3" fill="var(--air-wash)" stroke="var(--air)" stroke-width="1.5" stroke-dasharray="5 4"/><text x="760.0" y="55" text-anchor="middle" font-weight="600" fill="var(--air)">MIC</text><text x="760.0" y="72" text-anchor="middle" font-size="11.5">none here</text><text x="760.0" y="88" text-anchor="middle" font-size="10" opacity=".7">4 B, once encrypted</text>
+        <rect x="830" y="36" width="100" height="60" rx="3" fill="var(--air-wash)" stroke="var(--air)" stroke-width="1.5"/><text x="880.0" y="55" text-anchor="middle" font-weight="600" fill="var(--air)">CRC</text><text x="880.0" y="72" text-anchor="middle" font-size="11.5">24-bit check</text><text x="880.0" y="88" text-anchor="middle" font-size="10" opacity=".7">3 B</text>
+        <path d="M240 102 L240 108 L830 108 L830 102" fill="none" stroke="currentColor" stroke-width="1.2" opacity=".55"/><text x="535.0" y="124" text-anchor="middle" font-size="11.5" font-weight="600">LL Data PDU — what the Link Layer carries</text>
+        <line x1="305" y1="116" x2="305" y2="166" stroke="var(--air)" stroke-width="1.5" stroke-dasharray="4 3"/>
+        <text x="313" y="156" font-size="11" fill="var(--air)">the controller swaps one header for the other</text>
+        <text x="20" y="184" font-size="11.5" font-weight="600">over HCI, between the host and the Bluetooth chip — what project 03 captures and project 01 parses</text>
+        <rect x="240" y="196" width="130" height="60" rx="3" fill="var(--air-wash)" stroke="var(--air)" stroke-width="1.5"/><text x="305.0" y="215" text-anchor="middle" font-weight="600" fill="var(--air)">HCI ACL header</text><text x="305.0" y="232" text-anchor="middle" font-size="11.5">01 28 07 00</text><text x="305.0" y="248" text-anchor="middle" font-size="10" opacity=".7">handle 0x801 · PB 10</text>
+        <rect x="370" y="196" width="150" height="60" rx="3" fill="var(--core-wash)" stroke="var(--core)" stroke-width="1.5"/><text x="445.0" y="215" text-anchor="middle" font-weight="600" fill="var(--core)">L2CAP header</text><text x="445.0" y="232" text-anchor="middle" font-size="11.5">03 00 04 00</text><text x="445.0" y="248" text-anchor="middle" font-size="10" opacity=".7">length 3 · CID 0x0004</text>
+        <rect x="520" y="196" width="170" height="60" rx="3" fill="var(--gatt-wash)" stroke="var(--gatt)" stroke-width="1.5"/><text x="605.0" y="215" text-anchor="middle" font-weight="600" fill="var(--gatt)">ATT PDU</text><text x="605.0" y="232" text-anchor="middle" font-size="11.5">0a 24 00</text><text x="605.0" y="248" text-anchor="middle" font-size="10" opacity=".7">READ_REQ · handle 0x0024</text>
+        <text x="702" y="216" font-size="11" opacity=".75">L2CAP + ATT: the same bytes</text>
+        <text x="702" y="232" font-size="11" opacity=".75">in both rows. Only the frame</text>
+        <text x="702" y="248" font-size="11" opacity=".75">around them changes.</text>
+        <path d="M370 262 L370 268 L690 268 L690 262" fill="none" stroke="currentColor" stroke-width="1.2" opacity=".55"/><text x="530.0" y="284" text-anchor="middle" font-size="11.5" font-weight="600">L2CAP PDU</text>
+        <path d="M240 290 L240 296 L690 296 L690 290" fill="none" stroke="currentColor" stroke-width="1.2" opacity=".55"/><text x="465.0" y="312" text-anchor="middle" font-size="11.5" font-weight="600">HCI ACL data packet</text>
+      </g>
+    </svg>
+  </div>
+  <p class="bigcap" style="margin-top:.5rem">Bottom row: the capture, byte for byte. Top row: from the Core spec (Vol 6 Part B 2.1, 2.4) &mdash; the host never sees the preamble, access address, LL header or CRC, so their values are in no capture here. The connection was not yet encrypted: no MIC. On air the PDU and CRC are also whitened, XORed with a sequence that depends on the channel.</p>
+  <div style="overflow-x:auto">
+  <table class="layers">
+    <tr><th>Part</th><th>Full name</th><th>Its job</th><th>Done by · on air?</th></tr>
+    <tr><td>Preamble</td><td>&mdash;</td><td>An alternating 0101&hellip; pattern so the receiver locks onto the timing and signal level before the data starts</td><td>radio · yes</td></tr>
+    <tr><td>Access Address</td><td>&mdash;</td><td>&ldquo;Which connection is this packet for?&rdquo; Random per connection; all advertising uses 0x8E89BED6</td><td>controller · yes</td></tr>
+    <tr><td>LL header</td><td>Link Layer header</td><td>LLID (data or link control), SN/NESN (acknowledge or retransmit the last packet), MD (more data this event), length</td><td>controller · yes</td></tr>
+    <tr><td>HCI ACL header</td><td>Host Controller Interface, Asynchronous Connection-oriented Logical transport</td><td>Between host and chip over USB or UART: which connection (handle), whether this is the start or a continuation of a PDU (PB), length</td><td>host stack + chip firmware · <span class="no">no</span></td></tr>
+    <tr><td>L2CAP header</td><td>Logical Link Control and Adaptation Protocol</td><td>Shares one connection between protocols by channel: 0x0004 ATT, 0x0005 LE signalling, 0x0006 SMP (pairing); length of the PDU</td><td>host (BlueZ, Zephyr) · yes</td></tr>
+    <tr><td>ATT PDU</td><td>Attribute Protocol</td><td>One operation on one attribute: read, write, notify, error. GATT decides what each handle means &mdash; here 0x0024 is Battery Level</td><td>host · yes</td></tr>
+    <tr><td>MIC</td><td>Message Integrity Check</td><td>The AES-CCM tag, once the link is encrypted after pairing: a changed bit fails it</td><td>controller · if encrypted</td></tr>
+    <tr><td>CRC</td><td>Cyclic Redundancy Check</td><td>Catches bit errors from noise. A bad CRC means no acknowledgement, so the sender retransmits</td><td>radio · yes</td></tr>
+  </table>
   </div>
 </section>
 
