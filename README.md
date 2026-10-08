@@ -78,7 +78,7 @@ Project **04** found exactly this, on air, in devices around a laptop.
 | **01** | [BLE core in C](01-ble-core-c/) | You can write the parser that runs on the microcontroller: no heap, no libc, every length checked | ✅ 2060 checks, ASan+UBSan fuzz, 0 mismatches vs Wireshark on 59 437 advertising reports and 1 410 ACL packets of real phone sessions, 3.9 KB flash and 496 B worst-case stack on Cortex-M0+ |
 | **02** | [GATT peripheral on BlueZ](02-gatt-peripheral/) | You can design a GATT server: formats, error codes, notification policy, security levels | ✅ 25 tests; a real phone reads, subscribes, writes and pairs — HCI-verified |
 | **03** | [Reading HCI](03-hci-capture/) | You can read the host–controller boundary, where field bugs are decided | ✅ 40-min capture and a pairing-to-reconnection trace; 2 reports, 21 tests |
-| **04** | [Advertising privacy audit](04-adv-privacy/) | You can turn a capture into findings someone can act on | ✅ 41 tests, 10 rules, pseudonymised reports |
+| **04** | [Advertising privacy audit](04-adv-privacy/) | You can turn a capture into findings someone can act on | ✅ 53 tests, 10 rules, pseudonymised reports; a paired phone found by its IRK in a capture from three days before |
 
 Each project's README has its own quick start, gotchas table and interview
 talking points.
@@ -128,6 +128,15 @@ pairing attempt had died of the 30-second SMP timeout, and that the key
 crosses the host-controller interface in clear.
 [Report 02](03-hci-capture/report/REPORT-02.md).
 
+**The anonymous trace was my own phone.** Project 04 had followed one
+device through seven non-resolvable addresses for forty minutes, two of the
+links on timing alone. Three days later the phone was paired with the
+laptop, and the pairing capture held its Identity Resolving Key in clear.
+With that key, two short RPA bursts in the old capture resolve to the phone
+— 0.3 s and 0.2 s before exactly those two links. The same key recognises
+all nine addresses the phone connected from over a week; C and Python agree
+on every one. [Project 04](04-adv-privacy/).
+
 **The scanner rotates too.** bluetoothd's active scan restarts every 10.75 s
 with a fresh non-resolvable address — 224 in 40 minutes, all distinct —
 because every `SCAN_REQ` carries the scanner's address.
@@ -157,7 +166,7 @@ summer 2026). What each lecture became, and what it did not:
 | L7 | Jamming, FHSS | Advertising-channel hopping is below HCI and invisible to the host (03 §3) |
 | L8 | Authentication and confidentiality | IRK and `ah()`, AES-CMAC and the numeric-comparison value `g2` (01); a real numeric-comparison pairing and the authenticated write it unlocks (02); a reconnection encrypted from the stored LTK, and the LTK in clear on HCI (03 REPORT-02) |
 | L9 | WiFi | — not covered |
-| L10 | Location privacy, identifier rotation, CrossLink | All of project 04 |
+| L10 | Location privacy, identifier rotation, CrossLink | All of project 04, including a rotating phone identified after the fact by the IRK it gave away when pairing |
 
 ---
 
@@ -198,12 +207,15 @@ no sniffer, no phone — those are what the TODOs are for.
 ## Privacy
 
 A capture of the air is a list of your neighbours' devices, so `captures/`
-directories are git-ignored. What is published: seven advertising test fixtures with
-addresses and payloads scrubbed, sixteen ACL packets with no address, name or key, and reports in which every address is a keyed
-hash with a key that was never written down. `grep` for a MAC address in this
-repository finds none. The pairing and reconnection captures are also kept
-out because they hold the link's keys in clear; `timeline.py` never prints
-one, and its tests check that.
+directories are git-ignored. What is published: seven advertising test
+fixtures with addresses and payloads scrubbed, sixteen ACL packets with no
+address, name or key, and reports in which every address is a keyed hash
+with a key that was never written down. `grep` for a MAC address in this
+repository finds only made-up ones (`11:22:33:44:55:C6`) and the Core
+spec's `ah()` test vector (`70:81:94:0D:FB:AA`) — none of a real device.
+The pairing and reconnection captures are also kept out because they hold
+the link's keys in clear, and the phone's IRK; `timeline.py` and
+`bleprivacy.irk` never print one, and their tests check that.
 
 ---
 
@@ -213,7 +225,7 @@ one, and its tests check that.
 cd 01-ble-core-c    && cmake -S . -B build -G Ninja && cmake --build build && ./build/ble_tests   # 2060 checks
 cd 02-gatt-peripheral && python3 -m unittest discover -s tests -t .                                # 25 tests
 cd 03-hci-capture     && python3 -m unittest discover -s tests -t .                                # 21 tests
-cd 04-adv-privacy     && python3 -m unittest discover -s tests -t .                                # 41 tests
+cd 04-adv-privacy     && python3 -m unittest discover -s tests -t .                                # 53 tests
 ```
 
 Projects 02 and 04 are standard-library Python plus the system's

@@ -21,7 +21,7 @@ and are tested against the same fixtures.
 
 ```bash
 cd 04-adv-privacy
-python3 -m unittest discover -s tests -t .                  # 41 tests
+python3 -m unittest discover -s tests -t .                  # 53 tests
 
 python3 -m bleprivacy ../03-hci-capture/captures/scan-*.pcapng
 python3 -m bleprivacy CAPTURE --format md   -o report.md
@@ -29,6 +29,11 @@ python3 -m bleprivacy CAPTURE --format json -o report.json
 
 # which RPAs in the capture belong to a device whose IRK you have
 python3 -m bleprivacy CAPTURE --irk 0123456789abcdef0123456789abcdef
+
+# a device you paired with: its IRK out of the pairing capture, then every
+# address it connected or advertised from, in any capture; checked against
+# project 01's C library. Prints neither the key nor an address.
+python3 -m bleprivacy.irk --pairing PAIRING.pcapng CAPTURE [CAPTURE ...]
 ```
 
 Addresses are replaced by keyed hashes (`nrpa#447079`) and names by their
@@ -142,6 +147,33 @@ nothing links them.
 payload 类型 `0x12`，与公开研究描述的 Apple 离线查找广播一致。能否证明是同一设备？
 这份抓包不能——4 字节 payload 随地址一起变。
 
+**The trace was my own phone.** Three days later the phone in that room was
+paired with the laptop (project 02), and the pairing capture holds the IRK
+it sent in SMP Identity Information — in clear, because HCI is not
+encrypted. With that key, `bleprivacy.irk` finds the phone in this capture:
+2 of its 12 RPAs resolve, at 19.9 and 32.6 minutes, each a burst of
+exactly 13 reports of `0xFEF3` service data, RSSI −63 and −69 dBm. Those are
+the 13-report RPA bursts the lifetime table had already set aside, and they
+fall **0.3 s and 0.2 s before** the two handoffs of the 40-minute trace that
+had been linked only by timing and RSSI. So the trace is very likely the
+same phone: its RPA bursts resolve to it cryptographically, the trace
+carries the same Google service data at −56 dBm, and the phone was, I
+confirmed, lying next to the laptop. *Very likely, not proven*: the trace's
+own addresses are non-resolvable, and no key links them.
+**那条轨迹是我自己的手机。** 三天后这部手机和笔记本配对，配对抓包里有它通过 SMP 发出的 IRK
+（HCI 不加密，所以是明文）。用这把 IRK，这份抓包里 12 个 RPA 中有 2 个能解析，分别在第 19.9 和
+32.6 分钟，各是正好 13 条 `0xFEF3` 报告的短促广播——它们比轨迹里那两次"只靠时间和 RSSI 关联"的
+换地址分别早 0.3 s 和 0.2 s。所以轨迹**很可能**就是这部手机：RPA 有密码学证明，轨迹的 NRPA 没有。
+
+**The same key, a week of connections.** Every connection the phone made to
+the laptop came from a new RPA — six in 17 minutes before pairing, two
+during it, one a week later — and all 9 resolve with the one key, including
+the six from before the key was sent. Python's `ah()` and project 01's
+`ble_rpa_resolve` agree on all 21 addresses checked.
+**同一把密钥，一周的连接。** 手机每次连接都用新的 RPA（配对前 17 分钟里 6 个，配对时 2 个，
+一周后 1 个），9 个全部能用这一把 IRK 解析，包括密钥发出之前的 6 个。Python 与 C 两套实现
+对 21 个地址的结论一致。
+
 **A false positive, found on real data and now a test.** The first version
 linked three Apple RPAs because they shared a 17-byte payload. It was
 `01 00 00 00 00 00 00 00 00 00 00 00 80 00 00 00 00` — a bitmap every device
@@ -162,10 +194,11 @@ payload 把它们连在一起，而那是几乎全零的 bitmap。
 | `bleprivacy/ad.py` | AD structures and the fields that identify a device |
 | `bleprivacy/addr.py` | Address kinds; `Pseudonymizer` (HMAC-SHA256, random key per run by default) |
 | `bleprivacy/rpa.py` | AES-128 and `ah()` in pure Python, for `--irk` |
+| `bleprivacy/irk.py` | `python3 -m bleprivacy.irk`: a peer's IRK from SMP Identity Information in a pairing capture (or from a file), then which connection and advertising RPAs in any capture resolve with it; every answer confirmed by project 01's `blerpa` |
 | `bleprivacy/analyze.py` | Tracks, handoffs, concurrent links, chains, rules, lifetimes |
 | `bleprivacy/report.py` | text / Markdown / JSON, pseudonymised |
 | `samples/` | The report from the 40-minute capture, Markdown and JSON |
-| `tests/` | 41 tests: C fixtures, spec + FIPS vectors, pcapng edge cases, every rule, no-leak checks, and a count check against tshark when a capture is present |
+| `tests/` | 53 tests: C fixtures, spec + FIPS vectors, pcapng edge cases, every rule, no-leak checks, and a count check against tshark when a capture is present |
 
 ---
 
@@ -174,7 +207,8 @@ payload 把它们连在一起，而那是几乎全零的 bitmap。
 | Symptom | Cause | Fix |
 |---|---|---|
 | Three Apple RPAs linked as one device | A near-all-zero bitmap counted as an identifier | Distinct-byte-value threshold; regression test |
-| 0.0-minute "rotations" in the lifetime table | 13-report bursts of an RPA are not a rotation period | Lifetimes below 60 s are left out |
+| 0.0-minute "rotations" in the lifetime table | 13-report bursts of an RPA are not a rotation period | Lifetimes below 60 s are left out. They turned out to be my phone (see above) |
+| The IRK from SMP resolved nothing | SMP carries keys least significant octet first; `ah()` and the spec vectors take them MSB first | Reverse once, where the key is read; a test fails without it |
 | Handoff window vs. slow advertisers | Several devices here advertise every 6–9 s; one lost packet and a fixed 10 s window misses the handoff | Window is max(10 s, 2.5 × advertising interval); `test_gap_scales_with_advertising_interval` |
 | The same P007 printed twice for one address | The finding did not say which other address | Findings carry the related address |
 
@@ -196,6 +230,11 @@ payload 把它们连在一起，而那是几乎全零的 bitmap。
 - *"Why pseudonymise the report?"* — A capture of the air is a list of the
   neighbours' devices. The analysis only needs to know that two sightings are
   the same address, not which address — so a keyed hash is enough.
+- *"Who can follow a phone that rotates its address?"* — Anyone it ever
+  bonded with: they hold its IRK, and every RPA it will use, or has used,
+  resolves with it. My laptop found my phone in a capture taken three days
+  before they paired. The IRK is as sensitive as an identity, and it crosses
+  HCI in clear during pairing.
 - *"How is this related to CrossLink (Lecture 10)?"* — CrossLink links a
   device's identities across protocols by time and space. P005 is the same
   reasoning inside one protocol: a disappearance and an appearance, the same
@@ -212,10 +251,12 @@ payload 把它们连在一起，而那是几乎全零的 bitmap。
 ### Day 11 · Analyse / 分析
 - [x] Tracks, handoffs, rules; run on the 40-minute capture.
 - [x] Fix what the real capture broke (the Gotchas table).
-- [ ] TODO(you): turn on `Privacy = device` on a device of your own, pair it
-  with your phone, get both IRKs (`/var/lib/bluetooth/<adapter>/<device>/info`
-  on Linux), capture, and run with `--irk`. Every RPA of that device should
-  resolve; none of anyone else's should.
+- [x] The phone's side: its IRK from the pairing capture; all 9 RPAs it
+  connected from resolve, 2 of 12 RPAs in the 40-minute scan do — the phone
+  — and the other 10 do not. Confirmed by project 01's C library.
+- [ ] TODO(you): the laptop's side: turn on `Privacy = device`, pair again,
+  and show the phone's view — the laptop's RPAs resolving with the IRK it
+  now distributes (it distributed none in the 2026-09-30 pairing).
 - [ ] TODO(you): with an AirTag or iPhone of your own, find out whether the
   static-address changes above are one device re-keying.
 - [ ] TODO(you): P005 has no ground truth. Put a device you own in the room,
@@ -234,6 +275,7 @@ On 2026-09-27, Python 3.12, `cryptography` 41.0.7, tshark 4.2:
 
 | Command | Result |
 |---|---|
-| `python3 -m unittest discover -s tests -t .` | 41 tests, OK (Wireshark and `cryptography` cross-checks included, not skipped) |
+| `python3 -m unittest discover -s tests -t .` | 41 tests, OK (Wireshark and `cryptography` cross-checks included, not skipped); 53 on 2026-10-08 |
+| `python3 -m bleprivacy.irk --pairing pairing-20260930-2007.pcapng` on the scan and the three phone captures (2026-10-08) | 9 of 9 connection RPAs and 2 of 12 advertising RPAs resolve; C and Python agree on all 21 |
 | `python3 -m bleprivacy …40min.pcapng` | Report in `samples/`, 0.6 s |
 | `grep -E '([0-9A-F]{2}:){5}'` on `samples/` | 0 matches — no address in the published report |

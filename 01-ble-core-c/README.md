@@ -117,6 +117,7 @@ libgcc 的编译器辅助函数：M0+ 没有除法指令，也没有查表跳转
 | `tests/test_fuzz.c` | 200 000 random and mutated inputs, each in an exactly-sized `malloc` so ASan catches a one-byte over-read. |
 | `docs/multi-report.md` | How several reports share one legacy event: the spec, Linux and this parser compared, and why a `Data_Length` above 31 is accepted |
 | `tools/bleg2.c` | `g2` from the command line, arguments as SMP carries them (LSB first); a ctest runs it on the spec's vector |
+| `tools/blerpa.c` | `IRK ADDRESS` per line on stdin, both as they travel (LSB first), out: address kind and whether it resolves. A ctest runs the spec's `ah()` vector and a one-octet-off address; project 04 checks its Python `ah()` against it on real addresses |
 | `tools/pairing_from_capture.py` | Every pairing in an HCI capture: keys and nonces off the air, Cb re-derived with f4 to prove they were read right, then `bleg2` |
 | `tools/bleparse.c` | Hex HCI events on stdin, one TSV line per report on stdout. What `diff_vs_tshark.py` drives. |
 | `tools/aclparse.c` | Hex HCI ACL packets on stdin, one TSV line per packet down to ATT. What `diff_acl_vs_tshark.py` drives. |
@@ -221,6 +222,11 @@ controller's AES (`HCI_LE_Encrypt`) or a hardware block.
   hardware AES and a qualified stack. Writing CMAC and `g2` against the
   RFC's and the spec's vectors is how I learned what a pairing computes and
   where byte orders flip, which is what debugging a failed pairing needs.
+- *"Did your RPA code ever meet a real device?"* — Yes. The phone's IRK
+  came out of the HCI capture of its pairing (SMP Identity Information is
+  in clear on HCI), and `ble_rpa_resolve` recognised every address the
+  phone connected from over a week — nine, all different — and found it in
+  a scan taken three days before the key existed on the laptop.
 - *"Did your g2 ever meet a real device?"* — Yes: a phone and a laptop
   paired with numeric comparison and both showed 985572. Taking the public
   keys and nonces off an HCI capture of that pairing, this library computes
@@ -301,6 +307,9 @@ controller's AES (`HCI_LE_Encrypt`) or a hardware block.
 - [x] Fuzz under ASan + UBSan, exactly-sized buffers.
 - [x] Differential test against tshark on the full 40-minute capture.
 - [x] Cross-compile for Cortex-M0+ and M4 with no libc.
+- [x] `ble_rpa_resolve` on real addresses: a real phone's IRK, from its
+  pairing capture, against the 9 RPAs it connected from and the 12 RPAs of
+  a 40-minute scan (`tools/blerpa`, driven by project 04).
 - [x] Worst-case stack along the call chain, not per function:
   `tools/stack-depth.py` — 496 bytes on M0+ (`g2`), 504 on M4.
 - [x] Prove "no libc" at the symbol level. It was not true: `memset` on M0+.
@@ -324,7 +333,8 @@ Last run on 2026-10-07 (the scan capture is from 2026-09-27, the phone sessions 
 | `doxygen Doxyfile` | 0 warnings with warnings as errors; 114 HTML pages |
 | `./tools/size-cortex-m.sh` | M0+: 3905 B text, 0 data, 0 bss · M4: 3963 B; no libc symbol on either, two libgcc helpers (`__aeabi_uidivmod`, `__gnu_thumb1_case_uqi`) on M0+ |
 | `./tools/stack-depth.py` | Worst case 496 B on M0+ and 504 B on M4, both through `ble_sc_g2` |
-| `ctest` in `build/` | 2 tests: the unit suite and `bleg2` on the Appendix D.5 vector |
+| `ctest` in `build/` | 3 tests: the unit suite, `bleg2` on the Appendix D.5 vector, `blerpa` on the `ah()` vector |
+| `python3 -m bleprivacy.irk` (project 04), which drives `blerpa` | `ble_rpa_resolve` on 21 real addresses with a real phone's IRK: all 9 RPAs the phone connected from resolve, as do 2 of 12 advertising RPAs in a scan from three days before the pairing; agrees with the Python `ah()` on every one |
 | `python3 tools/pairing_from_capture.py …pairing-*.pcapng` | Cb matches f4 on air; 985572, the number both screens showed |
 
 Not run: on real Cortex-M hardware. The size and stack numbers come from the

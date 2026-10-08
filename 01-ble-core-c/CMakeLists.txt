@@ -62,10 +62,22 @@ add_test(NAME bleg2_spec_vector COMMAND bleg2
     cfc43dfff78365216e5fa725cce7e8a6)
 set_tests_properties(bleg2_spec_vector PROPERTIES PASS_REGULAR_EXPRESSION "g2 0x2f9ed5ba  compare value 938554")
 
+add_executable(blerpa tools/blerpa.c)
+target_link_libraries(blerpa PRIVATE ble_core)
+target_compile_options(blerpa PRIVATE ${BLE_WARNINGS})
+
+# blerpa takes the IRK as SMP sends it, LSB first: the spec's ah() vector
+# (Core Vol 3 Part H, D.7), IRK byte-reversed, address 70:81:94:0D:FB:AA as
+# HCI carries it. Must resolve; the same address with the hash's last octet
+# changed must not.
+add_test(NAME blerpa_spec_vector COMMAND sh -c
+    "printf '9b7d390aa610103405adc857a33402ec aafb0d948170\\n9b7d390aa610103405adc857a33402ec abfb0d948170\\n' | $<TARGET_FILE:blerpa>")
+set_tests_properties(blerpa_spec_vector PROPERTIES PASS_REGULAR_EXPRESSION "^rpa\t1\nrpa\t0\n$")
+
 if(BLE_SANITIZE)
     # Every target that links ble_core must be here: an executable linking the
     # instrumented library without the sanitizer runtime fails to link.
-    foreach(t ble_core ble_tests bleparse bleg2 aclparse)
+    foreach(t ble_core ble_tests bleparse bleg2 aclparse blerpa)
         target_compile_options(${t} PRIVATE -fsanitize=address,undefined
                                -fno-sanitize-recover=all -fno-omit-frame-pointer -g)
         target_link_options(${t} PRIVATE -fsanitize=address,undefined)
